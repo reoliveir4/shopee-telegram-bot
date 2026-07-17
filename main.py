@@ -27,7 +27,7 @@ SHOPEE_APP_SECRET = os.environ["SHOPEE_APP_SECRET"]
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]  # ex: @seucanal ou -100xxxxxxxxxx
 
-GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
+GEMINI_API_KEY = os.environ["GEMINI_API_KEY"].strip()
 
 SHOPEE_GRAPHQL_URL = "https://open-api.affiliate.shopee.com.br/graphql"
 
@@ -145,7 +145,7 @@ Preço: R$ {produto.get('price')}
 
     url = (
         "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+        f"gemini-flash-latest:generateContent?key={GEMINI_API_KEY}"
     )
 
     resp = requests.post(
