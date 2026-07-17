@@ -37,6 +37,9 @@ on:
     - cron: "28 0 * * *"   # 21:28 BRT
   workflow_dispatch: {}  # permite rodar manualmente pelo botão "Run workflow"
 
+permissions:
+  contents: write  # necessário para o robô salvar o arquivo de controle de produtos já enviados
+
 jobs:
   postar:
     runs-on: ubuntu-latest
@@ -59,5 +62,13 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          SHOPEE_KEYWORD: "promocao"
+          SHOPEE_KEYWORD: ""
         run: python main.py
+
+      - name: Salvar lista de produtos já enviados hoje
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add enviados.json
+          git diff --staged --quiet || git commit -m "Atualiza lista de produtos enviados"
+          git push
