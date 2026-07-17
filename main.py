@@ -3,7 +3,7 @@ Bot de automação: Shopee Affiliate API -> IA (texto) -> Telegram
 
 Fluxo:
 1. Consulta a API oficial de afiliados da Shopee (GraphQL) e busca produtos
-   com comissão, já com o link de afiliado (offerLink) embutido.
+   mais vendidos, já com o link de afiliado (offerLink) embutido.
 2. Gera um texto de divulgação usando a API gratuita do Google Gemini.
 3. Envia a mensagem (foto + texto + link) para o canal do Telegram.
 
@@ -14,6 +14,7 @@ import os
 import time
 import hashlib
 import json
+import random
 import requests
 from datetime import datetime
 
@@ -66,9 +67,9 @@ def escolher_keyword_do_dia() -> str:
 
     return KEYWORD_PADRAO
 
-# Quantos produtos buscar por execução (o script posta apenas 1 por rodada,
-# mas busca alguns para poder escolher o de maior comissão)
-LIMIT = 5
+# Quantos produtos buscar por execução (o script escolhe 1 aleatoriamente
+# entre eles, para dar variedade mesmo com muitas postagens por dia)
+LIMIT = 20
 
 
 # ---------------------------------------------------------------------------
@@ -190,8 +191,10 @@ def main():
         print("Nenhum produto encontrado. Encerrando.")
         return
 
-    # Escolhe o produto com maior comissão dentre os retornados
-    produto = max(produtos, key=lambda p: float(p.get("commissionRate", 0)))
+    # sortType: 2 = já retorna os produtos ordenados por MAIS VENDIDOS.
+    # Escolhemos um aleatoriamente entre eles (não filtramos por comissão,
+    # já que qualquer venda feita pelo seu link gera comissão para você).
+    produto = random.choice(produtos)
     print(f"Produto escolhido: {produto['productName']}")
 
     print("Gerando título com IA...")
