@@ -21,8 +21,8 @@ from datetime import datetime
 # ---------------------------------------------------------------------------
 # Configurações (vêm de variáveis de ambiente / GitHub Secrets)
 # ---------------------------------------------------------------------------
-SHOPEE_APP_ID = os.environ["SHOPEE_APP_ID"]
-SHOPEE_APP_SECRET = os.environ["SHOPEE_APP_SECRET"]
+SHOPEE_APP_ID = os.environ["SHOPEE_APP_ID"].strip()
+SHOPEE_APP_SECRET = os.environ["SHOPEE_APP_SECRET"].strip()
 
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]  # ex: @seucanal ou -100xxxxxxxxxx
@@ -31,9 +31,10 @@ GEMINI_API_KEY = os.environ["GEMINI_API_KEY"].strip()
 
 SHOPEE_GRAPHQL_URL = "https://open-api.affiliate.shopee.com.br/graphql"
 
-# Palavra-chave / categoria de produtos a buscar por padrão, quando nenhuma
-# campanha de data específica estiver ativa.
-KEYWORD_PADRAO = os.environ.get("SHOPEE_KEYWORD", "promocao")
+# Se SHOPEE_KEYWORD estiver definida no workflow com um valor específico,
+# ela trava a busca nessa única palavra-chave (fora dos dias de campanha).
+# Deixe em branco ("") para sortear entre TAGS_POPULARES a cada execução.
+KEYWORD_FIXA = os.environ.get("SHOPEE_KEYWORD", "").strip()
 
 # ---------------------------------------------------------------------------
 # Campanhas por data: cada item define um período (início e fim, formato
@@ -47,6 +48,36 @@ CAMPANHAS_POR_DATA = [
     {"nome": "Black Friday", "inicio": "11-01", "fim": "11-29", "keyword": "black friday"},
     {"nome": "Natal", "inicio": "12-01", "fim": "12-24", "keyword": "presente de natal"},
     # Adicione novas campanhas seguindo o mesmo formato acima.
+]
+
+
+# ---------------------------------------------------------------------------
+# Categorias populares: quando nenhuma campanha de data estiver ativa, o
+# robô sorteia uma dessas categorias a cada execução, em vez de sempre usar
+# a mesma palavra-chave. Isso multiplica a variedade de produtos ao longo
+# do dia. Edite essa lista livremente para focar no seu nicho.
+# ---------------------------------------------------------------------------
+TAGS_POPULARES = [
+    "eletronicos",
+    "beleza e cuidado pessoal",
+    "casa e decoracao",
+    "moda feminina",
+    "moda masculina",
+    "cozinha utensilios",
+    "fitness e academia",
+    "smartphone acessorios",
+    "bolsas e mochilas",
+    "calcados",
+    "brinquedos infantil",
+    "pet shop",
+    "informatica gamer",
+    "relogios",
+    "organizacao domestica",
+    "skincare",
+    "fones de ouvido",
+    "ferramentas",
+    "papelaria",
+    "jardim e piscina",
 ]
 
 
@@ -65,11 +96,47 @@ def escolher_keyword_do_dia() -> str:
             print(f"Campanha ativa hoje: {campanha['nome']} (keyword: {campanha['keyword']})")
             return campanha["keyword"]
 
-    return KEYWORD_PADRAO
+    if KEYWORD_FIXA:
+        return KEYWORD_FIXA
 
-# Quantos produtos buscar por execução (o script escolhe 1 aleatoriamente
-# entre eles, para dar variedade mesmo com muitas postagens por dia)
-LIMIT = 20
+    # Nenhuma campanha ativa e nenhuma keyword fixa definida: sorteia uma
+    # categoria popular para variar
+    keyword_sorteada = random.choice(TAGS_POPULARES)
+    print(f"Nenhuma campanha ativa. Categoria sorteada: '{keyword_sorteada}'")
+    return keyword_sorteada
+
+
+# ---------------------------------------------------------------------------
+# Controle de produtos já postados hoje (evita repetição no mesmo dia)
+# ---------------------------------------------------------------------------
+def carregar_enviados_hoje() -> set:
+    hoje = datetime.now().strftime("%Y-%m-%d")
+
+    if not os.path.exists(ARQUIVO_ENVIADOS):
+        return set()
+
+    try:
+        with open(ARQUIVO_ENVIADOS, "r", encoding="utf-8") as f:
+            dados = json.load(f)
+    except (json.JSONDecodeError, FileNotFoundError):
+        return set()
+
+    if dados.get("data") != hoje:
+        # Arquivo é de um dia anterior: começa a lista zerada
+        return set()
+
+    return set(dados.get("ids", []))
+
+
+def salvar_enviados_hoje(ids_enviados: set):
+    hoje = datetime.now().strftime("%Y-%m-%d")
+    with open(ARQUIVO_ENVIADOS, "w", encoding="utf-8") as f:
+        json.dump({"data": hoje, "ids": list(ids_enviados)}, f)
+
+# Quantos produtos buscar por execução (busca bastante para sobrar opção
+# mesmo depois de remover os que já foram postados hoje)
+LIMIT = 50
+ARQUIVO_ENVIADOS = "enviados.json"
 
 
 # ---------------------------------------------------------------------------
@@ -191,10 +258,19 @@ def main():
         print("Nenhum produto encontrado. Encerrando.")
         return
 
+    enviados_hoje = carregar_enviados_hoje()
+    produtos_novos = [p for p in produtos if str(p["itemId"]) not in enviados_hoje]
+
+    if not produtos_novos:
+        # Já postamos todos os produtos disponíveis para essa keyword hoje;
+        # nesse caso, libera repetição para não deixar de postar.
+        print("Todos os produtos encontrados já foram postados hoje. Permitindo repetição.")
+        produtos_novos = produtos
+
     # sortType: 2 = já retorna os produtos ordenados por MAIS VENDIDOS.
     # Escolhemos um aleatoriamente entre eles (não filtramos por comissão,
     # já que qualquer venda feita pelo seu link gera comissão para você).
-    produto = random.choice(produtos)
+    produto = random.choice(produtos_novos)
     print(f"Produto escolhido: {produto['productName']}")
 
     print("Gerando título com IA...")
@@ -204,6 +280,9 @@ def main():
     print("Enviando para o Telegram...")
     resultado = enviar_para_telegram(produto, titulo)
     print("Enviado com sucesso!", resultado.get("ok"))
+
+    enviados_hoje.add(str(produto["itemId"]))
+    salvar_enviados_hoje(enviados_hoje)
 
 
 if __name__ == "__main__":
