@@ -1,10 +1,41 @@
 name: Postar oferta Shopee no Telegram
 
+# 30 disparos por dia, distribuídos das 6h às 22h (horário de Brasília,
+# UTC-3). Os horários abaixo já estão convertidos para UTC, que é o fuso
+# que o GitHub Actions usa internamente.
 on:
   schedule:
-    - cron: "0 12 * * *"
-    - cron: "0 18 * * *"
-  workflow_dispatch: {}
+    - cron: "0 9 * * *"    # 06:00 BRT
+    - cron: "32 9 * * *"   # 06:32 BRT
+    - cron: "4 10 * * *"   # 07:04 BRT
+    - cron: "36 10 * * *"  # 07:36 BRT
+    - cron: "8 11 * * *"   # 08:08 BRT
+    - cron: "40 11 * * *"  # 08:40 BRT
+    - cron: "12 12 * * *"  # 09:12 BRT
+    - cron: "44 12 * * *"  # 09:44 BRT
+    - cron: "16 13 * * *"  # 10:16 BRT
+    - cron: "48 13 * * *"  # 10:48 BRT
+    - cron: "20 14 * * *"  # 11:20 BRT
+    - cron: "52 14 * * *"  # 11:52 BRT
+    - cron: "24 15 * * *"  # 12:24 BRT
+    - cron: "56 15 * * *"  # 12:56 BRT
+    - cron: "28 16 * * *"  # 13:28 BRT
+    - cron: "0 17 * * *"   # 14:00 BRT
+    - cron: "32 17 * * *"  # 14:32 BRT
+    - cron: "4 18 * * *"   # 15:04 BRT
+    - cron: "36 18 * * *"  # 15:36 BRT
+    - cron: "8 19 * * *"   # 16:08 BRT
+    - cron: "40 19 * * *"  # 16:40 BRT
+    - cron: "12 20 * * *"  # 17:12 BRT
+    - cron: "44 20 * * *"  # 17:44 BRT
+    - cron: "16 21 * * *"  # 18:16 BRT
+    - cron: "48 21 * * *"  # 18:48 BRT
+    - cron: "20 22 * * *"  # 19:20 BRT
+    - cron: "52 22 * * *"  # 19:52 BRT
+    - cron: "24 23 * * *"  # 20:24 BRT
+    - cron: "56 23 * * *"  # 20:56 BRT
+    - cron: "28 0 * * *"   # 21:28 BRT
+  workflow_dispatch: {}  # permite rodar manualmente pelo botão "Run workflow"
 
 jobs:
   postar:
