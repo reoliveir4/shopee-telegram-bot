@@ -4,7 +4,7 @@ Bot de automação: Shopee Affiliate API -> IA (texto) -> Telegram
 Fluxo:
 1. Consulta a API oficial de afiliados da Shopee (GraphQL) e busca produtos
    com comissão, já com o link de afiliado (offerLink) embutido.
-2. Gera um texto de divulgação usando a API da Anthropic (Claude).
+2. Gera um texto de divulgação usando a API gratuita do Google Gemini.
 3. Envia a mensagem (foto + texto + link) para o canal do Telegram.
 
 Todas as chaves sensíveis são lidas de variáveis de ambiente (GitHub Secrets).
@@ -15,6 +15,7 @@ import time
 import hashlib
 import json
 import requests
+from datetime import datetime
 
 # ---------------------------------------------------------------------------
 # Configurações (vêm de variáveis de ambiente / GitHub Secrets)
@@ -25,13 +26,45 @@ SHOPEE_APP_SECRET = os.environ["SHOPEE_APP_SECRET"]
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]  # ex: @seucanal ou -100xxxxxxxxxx
 
-ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
+GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
 
 SHOPEE_GRAPHQL_URL = "https://open-api.affiliate.shopee.com.br/graphql"
 
-# Palavra-chave / categoria de produtos a buscar. Pode virar uma lista para
-# variar o nicho a cada execução.
-KEYWORD = os.environ.get("SHOPEE_KEYWORD", "promocao")
+# Palavra-chave / categoria de produtos a buscar por padrão, quando nenhuma
+# campanha de data específica estiver ativa.
+KEYWORD_PADRAO = os.environ.get("SHOPEE_KEYWORD", "promocao")
+
+# ---------------------------------------------------------------------------
+# Campanhas por data: cada item define um período (início e fim, formato
+# "MM-DD") e a palavra-chave a usar nesse período. O script verifica a data
+# de hoje e, se estiver dentro de algum período, usa a keyword da campanha
+# em vez da padrão. Datas que viram o ano (ex: 25-12 a 05-01) funcionam.
+# ---------------------------------------------------------------------------
+CAMPANHAS_POR_DATA = [
+    {"nome": "Dia das Mães", "inicio": "04-20", "fim": "05-12", "keyword": "presente dia das maes"},
+    {"nome": "Dia dos Namorados", "inicio": "05-25", "fim": "06-12", "keyword": "presente dia dos namorados"},
+    {"nome": "Black Friday", "inicio": "11-01", "fim": "11-29", "keyword": "black friday"},
+    {"nome": "Natal", "inicio": "12-01", "fim": "12-24", "keyword": "presente de natal"},
+    # Adicione novas campanhas seguindo o mesmo formato acima.
+]
+
+
+def escolher_keyword_do_dia() -> str:
+    hoje = datetime.now().strftime("%m-%d")
+
+    for campanha in CAMPANHAS_POR_DATA:
+        inicio, fim = campanha["inicio"], campanha["fim"]
+        if inicio <= fim:
+            dentro_do_periodo = inicio <= hoje <= fim
+        else:
+            # Período que cruza a virada do ano (ex: dez -> jan)
+            dentro_do_periodo = hoje >= inicio or hoje <= fim
+
+        if dentro_do_periodo:
+            print(f"Campanha ativa hoje: {campanha['nome']} (keyword: {campanha['keyword']})")
+            return campanha["keyword"]
+
+    return KEYWORD_PADRAO
 
 # Quantos produtos buscar por execução (o script posta apenas 1 por rodada,
 # mas busca alguns para poder escolher o de maior comissão)
@@ -93,37 +126,36 @@ def buscar_produtos_shopee(keyword: str, limit: int = 5) -> list:
 
 
 # ---------------------------------------------------------------------------
-# 2) Geração automática do texto com a API da Anthropic (Claude)
+# 2) Geração automática do texto com a API gratuita do Google Gemini
 # ---------------------------------------------------------------------------
 def gerar_texto_divulgacao(produto: dict) -> str:
     prompt = f"""
 Crie um texto curto (máximo 4 linhas) e persuasivo para divulgar este produto
-em um canal de ofertas no Telegram. Use emojis, tom animado, e destaque a
-comissão/desconto se fizer sentido. Não invente informações que não foram
-fornecidas. Não inclua o link (ele será adicionado separadamente).
+em um canal de ofertas no Telegram. Use emojis, tom animado, e destaque o
+preço de forma natural dentro do texto, como um gancho que chama atenção.
+Não invente informações que não foram fornecidas. Não inclua o link (ele
+será adicionado separadamente). Responda apenas com o texto final, sem
+explicações extras.
 
 Produto: {produto.get('productName')}
 Loja: {produto.get('shopName')}
 Preço: R$ {produto.get('price')}
 """
 
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        f"gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+    )
+
     resp = requests.post(
-        "https://api.anthropic.com/v1/messages",
-        headers={
-            "x-api-key": ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
-        },
-        json={
-            "model": "claude-sonnet-4-6",
-            "max_tokens": 300,
-            "messages": [{"role": "user", "content": prompt}],
-        },
+        url,
+        headers={"content-type": "application/json"},
+        json={"contents": [{"parts": [{"text": prompt}]}]},
         timeout=30,
     )
     resp.raise_for_status()
     data = resp.json()
-    return data["content"][0]["text"].strip()
+    return data["candidates"][0]["content"]["parts"][0]["text"].strip()
 
 
 # ---------------------------------------------------------------------------
@@ -150,8 +182,9 @@ def enviar_para_telegram(produto: dict, texto: str):
 # Execução principal
 # ---------------------------------------------------------------------------
 def main():
-    print(f"Buscando produtos para a palavra-chave: '{KEYWORD}'...")
-    produtos = buscar_produtos_shopee(KEYWORD, LIMIT)
+    keyword = escolher_keyword_do_dia()
+    print(f"Buscando produtos para a palavra-chave: '{keyword}'...")
+    produtos = buscar_produtos_shopee(keyword, LIMIT)
 
     if not produtos:
         print("Nenhum produto encontrado. Encerrando.")
@@ -161,12 +194,12 @@ def main():
     produto = max(produtos, key=lambda p: float(p.get("commissionRate", 0)))
     print(f"Produto escolhido: {produto['productName']}")
 
-    print("Gerando texto de divulgação com IA...")
-    texto = gerar_texto_divulgacao(produto)
-    print(f"Texto gerado:\n{texto}")
+    print("Gerando título com IA...")
+    titulo = gerar_texto_divulgacao(produto)
+    print(f"Título gerado:\n{titulo}")
 
     print("Enviando para o Telegram...")
-    resultado = enviar_para_telegram(produto, texto)
+    resultado = enviar_para_telegram(produto, titulo)
     print("Enviado com sucesso!", resultado.get("ok"))
 
 
