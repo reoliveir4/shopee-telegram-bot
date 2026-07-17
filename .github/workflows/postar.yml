@@ -2,11 +2,9 @@ name: Postar oferta Shopee no Telegram
 
 on:
   schedule:
-    # Roda às 12:00 e às 18:00 (horário UTC = 09:00 e 15:00 em Brasília)
-    # Ajuste os horários como quiser: https://crontab.guru
     - cron: "0 12 * * *"
     - cron: "0 18 * * *"
-  workflow_dispatch: {}  # permite rodar manualmente pelo botão "Run workflow"
+  workflow_dispatch: {}
 
 jobs:
   postar:
@@ -29,6 +27,6 @@ jobs:
           SHOPEE_APP_SECRET: ${{ secrets.SHOPEE_APP_SECRET }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           SHOPEE_KEYWORD: "promocao"
         run: python main.py
