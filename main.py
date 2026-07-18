@@ -259,7 +259,7 @@ def buscar_produtos_shopee(keyword: str, limit: int = 5) -> list:
           price
           priceMax
           priceMin
-          discountPct
+          priceDiscountRate
           imageUrl
           offerLink
           shopName
@@ -353,7 +353,7 @@ def formatar_preco(valor: float) -> str:
 
 def montar_linha_preco(produto: dict) -> str:
     preco = float(produto.get("price", 0))
-    desconto = produto.get("discountPct")
+    desconto = produto.get("priceDiscountRate")
     desconto = float(desconto) if desconto else 0.0
 
     if desconto > 0:
