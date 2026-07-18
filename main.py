@@ -47,7 +47,7 @@ KEYWORD_FIXA = os.environ.get("SHOPEE_KEYWORD", "").strip()
 # CONFIGURAÇÃO DE HORÁRIOS — ajuste aqui a quantidade de posts por dia e a
 # janela de horário. O robô distribui os posts igualmente dentro da janela.
 # ---------------------------------------------------------------------------
-POSTS_POR_DIA = 35
+POSTS_POR_DIA = 50
 HORA_INICIO = "05:00"   # horário de Brasília
 HORA_FIM = "23:00"      # horário de Brasília
 
