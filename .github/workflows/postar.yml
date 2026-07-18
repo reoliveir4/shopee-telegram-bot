@@ -1,44 +1,19 @@
 name: Postar oferta Shopee no Telegram
 
-# 30 disparos por dia, distribuídos das 6h às 22h (horário de Brasília,
-# UTC-3). Os horários abaixo já estão convertidos para UTC, que é o fuso
-# que o GitHub Actions usa internamente.
+# O robô roda a cada 10 minutos e decide sozinho, com base no relógio real,
+# se algum dos horários-alvo do dia (definidos em main.py) já venceu e
+# ainda não foi postado. Esse modelo é muito mais resistente a atrasos do
+# GitHub do que usar um horário de cron fixo para cada post individual.
+#
+# Faixa de horários cobrindo 05h-23h de Brasília (UTC-3) = 08h-02h em UTC.
 on:
   schedule:
-    - cron: "0 9 * * *"    # 06:00 BRT
-    - cron: "32 9 * * *"   # 06:32 BRT
-    - cron: "4 10 * * *"   # 07:04 BRT
-    - cron: "36 10 * * *"  # 07:36 BRT
-    - cron: "8 11 * * *"   # 08:08 BRT
-    - cron: "40 11 * * *"  # 08:40 BRT
-    - cron: "12 12 * * *"  # 09:12 BRT
-    - cron: "44 12 * * *"  # 09:44 BRT
-    - cron: "16 13 * * *"  # 10:16 BRT
-    - cron: "48 13 * * *"  # 10:48 BRT
-    - cron: "20 14 * * *"  # 11:20 BRT
-    - cron: "52 14 * * *"  # 11:52 BRT
-    - cron: "24 15 * * *"  # 12:24 BRT
-    - cron: "56 15 * * *"  # 12:56 BRT
-    - cron: "28 16 * * *"  # 13:28 BRT
-    - cron: "0 17 * * *"   # 14:00 BRT
-    - cron: "32 17 * * *"  # 14:32 BRT
-    - cron: "4 18 * * *"   # 15:04 BRT
-    - cron: "36 18 * * *"  # 15:36 BRT
-    - cron: "8 19 * * *"   # 16:08 BRT
-    - cron: "40 19 * * *"  # 16:40 BRT
-    - cron: "12 20 * * *"  # 17:12 BRT
-    - cron: "44 20 * * *"  # 17:44 BRT
-    - cron: "16 21 * * *"  # 18:16 BRT
-    - cron: "48 21 * * *"  # 18:48 BRT
-    - cron: "20 22 * * *"  # 19:20 BRT
-    - cron: "52 22 * * *"  # 19:52 BRT
-    - cron: "24 23 * * *"  # 20:24 BRT
-    - cron: "56 23 * * *"  # 20:56 BRT
-    - cron: "28 0 * * *"   # 21:28 BRT
+    - cron: "*/10 8-23 * * *"
+    - cron: "*/10 0-2 * * *"
   workflow_dispatch: {}  # permite rodar manualmente pelo botão "Run workflow"
 
 permissions:
-  contents: write  # necessário para o robô salvar o arquivo de controle de produtos já enviados
+  contents: write  # necessário para o robô salvar o arquivo de controle (estado.json)
 
 jobs:
   postar:
@@ -65,10 +40,11 @@ jobs:
           SHOPEE_KEYWORD: ""
         run: python main.py
 
-      - name: Salvar lista de produtos já enviados hoje
+      - name: Salvar estado (horários e produtos já postados)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add enviados.json
-          git diff --staged --quiet || git commit -m "Atualiza lista de produtos enviados"
+          git add estado.json
+          git diff --staged --quiet || git commit -m "Atualiza estado de postagens"
+          git pull --rebase
           git push
