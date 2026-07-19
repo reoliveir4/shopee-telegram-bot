@@ -394,34 +394,18 @@ def enviar_para_telegram(produto: dict, conteudo: dict):
 # ---------------------------------------------------------------------------
 # Execução principal
 # ---------------------------------------------------------------------------
-def main():
-    agora_brt = datetime.utcnow() - timedelta(hours=3)  # Brasília = UTC-3
-    agora_hm = agora_brt.strftime("%H:%M")
+MAX_POSTS_POR_EXECUCAO = 6  # limite de segurança por execução, para não estourar o tempo do job
 
-    estado = carregar_estado()
-    horarios_alvo = gerar_horarios_alvo()
 
-    horarios_pendentes = [
-        h for h in horarios_alvo
-        if h <= agora_hm and h not in estado["horarios_postados"]
-    ]
-
-    if not horarios_pendentes:
-        print(f"Nenhum horário pendente agora ({agora_hm} BRT). Encerrando sem postar.")
-        return
-
-    horario_disparado = horarios_pendentes[0]
-    print(f"Horário-alvo '{horario_disparado}' está pendente (agora são {agora_hm} BRT). Postando...")
-
-    keyword = escolher_keyword_do_dia()
+def postar_um_produto(keyword_hint_dia: str, estado: dict) -> bool:
+    """Busca, gera conteúdo e posta 1 produto. Retorna True se postou."""
+    keyword = keyword_hint_dia
     print(f"Buscando produtos para a palavra-chave: '{keyword}'...")
     produtos = buscar_produtos_shopee(keyword, LIMIT)
 
     if not produtos:
-        print("Nenhum produto encontrado. Marcando horário como tentado, sem postar.")
-        estado["horarios_postados"].append(horario_disparado)
-        salvar_estado(estado)
-        return
+        print("Nenhum produto encontrado para essa keyword.")
+        return False
 
     ids_enviados = set(estado["ids_enviados"])
     produtos_novos = [p for p in produtos if str(p["itemId"]) not in ids_enviados]
@@ -442,8 +426,45 @@ def main():
     print("Enviado com sucesso!", resultado.get("ok"))
 
     estado["ids_enviados"].append(str(produto["itemId"]))
-    estado["horarios_postados"].append(horario_disparado)
-    salvar_estado(estado)
+    return True
+
+
+def main():
+    agora_brt = datetime.utcnow() - timedelta(hours=3)  # Brasília = UTC-3
+    agora_hm = agora_brt.strftime("%H:%M")
+
+    estado = carregar_estado()
+    horarios_alvo = gerar_horarios_alvo()
+
+    horarios_pendentes = [
+        h for h in horarios_alvo
+        if h <= agora_hm and h not in estado["horarios_postados"]
+    ]
+
+    if not horarios_pendentes:
+        print(f"Nenhum horário pendente agora ({agora_hm} BRT). Encerrando sem postar.")
+        return
+
+    # Se o GitHub atrasou a execução e vários horários já venceram, processa
+    # vários de uma vez nesta mesma execução (até o limite de segurança),
+    # em vez de recuperar só 1 por vez — assim o total do dia não fica
+    # perpetuamente atrasado.
+    a_processar = horarios_pendentes[:MAX_POSTS_POR_EXECUCAO]
+    print(
+        f"{len(horarios_pendentes)} horário(s) pendente(s) (agora são {agora_hm} BRT). "
+        f"Processando {len(a_processar)} nesta execução..."
+    )
+
+    for horario_disparado in a_processar:
+        print(f"\n--- Horário-alvo '{horario_disparado}' ---")
+        keyword = escolher_keyword_do_dia()
+        postou = postar_um_produto(keyword, estado)
+
+        estado["horarios_postados"].append(horario_disparado)
+        salvar_estado(estado)  # salva a cada iteração, para não perder progresso
+
+        if postou and horario_disparado != a_processar[-1]:
+            time.sleep(3)  # pequena pausa entre envios, por segurança no Telegram
 
 
 if __name__ == "__main__":
