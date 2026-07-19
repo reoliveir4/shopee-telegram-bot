@@ -7,13 +7,12 @@ name: Postar oferta Shopee no Telegram
 #
 # Faixa de horários cobrindo 05h-23h de Brasília (UTC-3) = 08h-02h em UTC.
 on:
- schedule:
+  schedule:
     - cron: "*/10 0-2,8-23 * * *"
-workflow_dispatch: {}  # permite rodar manualmente pelo botão "Run workflow"
+  workflow_dispatch: {}  # permite rodar manualmente pelo botão "Run workflow"
 
 permissions:
   contents: write  # necessário para o robô salvar o arquivo de controle (estado.json)
-
 jobs:
   postar:
     runs-on: ubuntu-latest
