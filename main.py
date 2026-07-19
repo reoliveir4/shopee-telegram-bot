@@ -341,7 +341,7 @@ Loja: {produto.get('shopName')}
         url,
         headers={"content-type": "application/json"},
         json={"contents": [{"parts": [{"text": prompt}]}]},
-        timeout=30,
+        timeout=60,
     )
     resp.raise_for_status()
     texto_bruto = resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
@@ -476,8 +476,17 @@ def main():
 
     for horario_disparado in a_processar:
         print(f"\n--- Horário-alvo '{horario_disparado}' ---")
-        keyword = escolher_keyword_do_dia()
-        postou = postar_um_produto(keyword, estado)
+        try:
+            keyword = escolher_keyword_do_dia()
+            postou = postar_um_produto(keyword, estado)
+        except Exception as erro:
+            # Uma falha pontual (ex: timeout de rede, instabilidade de API)
+            # não deve cancelar os outros horários pendentes desta execução.
+            # Não marcamos este horário como postado, para que seja
+            # tentado novamente na próxima execução.
+            print(f"ERRO ao processar o horário '{horario_disparado}': {erro}")
+            print("Pulando para o próximo horário pendente, se houver...")
+            continue
 
         estado["horarios_postados"].append(horario_disparado)
         salvar_estado(estado)  # salva a cada iteração, para não perder progresso
