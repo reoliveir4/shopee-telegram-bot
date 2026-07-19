@@ -186,6 +186,7 @@ def escolher_keyword_do_dia() -> str:
 # ---------------------------------------------------------------------------
 TAGS_POPULARES = [
     "eletronicos",
+    "eletronicos para casa",
     "beleza e cuidado pessoal",
     "casa e decoracao",
     "moda feminina",
@@ -196,7 +197,7 @@ TAGS_POPULARES = [
     "bolsas e mochilas",
     "calcados",
     "brinquedos infantil",
-    "pet shop",
+    "kit",
     "informatica gamer",
     "relogios",
     "organizacao domestica",
@@ -294,16 +295,34 @@ def buscar_produtos_shopee(keyword: str, limit: int = 5) -> list:
 # ---------------------------------------------------------------------------
 # 2) Geração automática do conteúdo (gancho + descrição) com Google Gemini
 # ---------------------------------------------------------------------------
+# Estilos de gancho: sorteamos um a cada postagem para FORÇAR diversidade
+# real. Pedir "varie" pra IA sozinho não é confiável — ela tende a
+# convergir sempre pros mesmos padrões (perguntas tipo "Cansada de...").
+ESTILOS_GANCHO = [
+    "Uma pergunta retórica curta e envolvente (ex: começando com 'Já pensou em...', 'E se...', 'Sabia que...').",
+    "Uma afirmação direta e impactante, SEM ser pergunta (ex: uma frase de efeito sobre o benefício do produto).",
+    "Um gatilho de urgência ou escassez (ex: mencionando que a oferta pode acabar, sem inventar prazo específico).",
+    "Um gatilho de curiosidade, como se estivesse revelando um segredo ou truque pouco conhecido.",
+    "Uma frase de tom bem-humorado ou descontraído, relacionável ao dia a dia.",
+    "Uma afirmação direta sobre o principal benefício do produto, em tom confiante (sem pergunta, sem 'cansado de').",
+    "Um gatilho de comparação (como era difícil antes vs. como fica fácil agora), em uma frase só.",
+    "Uma exclamação chamativa e direta ao ponto, como uma manchete de oferta.",
+]
+
+
 def gerar_conteudo_ia(produto: dict) -> dict:
+    estilo_sorteado = random.choice(ESTILOS_GANCHO)
     prompt = f"""
 Crie o conteúdo de um anúncio para um canal de ofertas no Telegram, no
 formato JSON, com EXATAMENTE estas duas chaves:
 
-- "gancho": uma frase curta (1 linha), com um emoji relevante no início,
-  que desperte curiosidade sobre o problema/necessidade que o produto
-  resolve. NÃO mencione preço nem o nome completo do produto aqui.
+- "gancho": uma frase curta (1 linha), com um emoji relevante no início.
+  ESTILO OBRIGATÓRIO para esta frase: {estilo_sorteado}
+  IMPORTANTE: não comece com "Cansada de", "Cansado de", "Sofrendo com",
+  "Quer garantir" ou variações parecidas — essas frases já foram usadas
+  demais e precisam ser evitadas.
 - "descricao": uma frase curta (1 linha), com um emoji relevante no
-  início, seguida do nome do produto, um traço "–" e uma explicação
+  início, seguida do nome do produto e um traço "–" e uma explicação
   rápida do principal benefício.
 
 Não invente informações que não foram fornecidas. Responda APENAS com o
@@ -394,7 +413,7 @@ def enviar_para_telegram(produto: dict, conteudo: dict):
 # ---------------------------------------------------------------------------
 # Execução principal
 # ---------------------------------------------------------------------------
-MAX_POSTS_POR_EXECUCAO = 6  # limite de segurança por execução, para não estourar o tempo do job
+MAX_POSTS_POR_EXECUCAO = 15  # limite de segurança por execução, para não estourar o tempo do job
 
 
 def postar_um_produto(keyword_hint_dia: str, estado: dict) -> bool:
