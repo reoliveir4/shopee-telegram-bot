@@ -6,7 +6,7 @@ Fluxo:
    script verifica se algum horário-alvo do dia já venceu e ainda não foi
    postado. Se sim, busca um produto mais vendido na Shopee, gera um texto
    com IA (Google Gemini) e posta no canal do Telegram no formato:
-     [gancho]
+     [título]
      [preço com desconto]
      [descrição do produto]
      [link]
@@ -293,34 +293,28 @@ def buscar_produtos_shopee(keyword: str, limit: int = 5) -> list:
 
 
 # ---------------------------------------------------------------------------
-# 2) Geração automática do conteúdo (gancho + descrição) com Google Gemini
+# 2) Geração automática do conteúdo (título + descrição) com Google Gemini
 # ---------------------------------------------------------------------------
-# Estilos de gancho: sorteamos um a cada postagem para FORÇAR diversidade
-# real. Pedir "varie" pra IA sozinho não é confiável — ela tende a
-# convergir sempre pros mesmos padrões (perguntas tipo "Cansada de...").
-ESTILOS_GANCHO = [
-    "Uma pergunta retórica curta e envolvente (ex: começando com 'Já pensou em...', 'E se...', 'Sabia que...').",
-    "Uma afirmação direta e impactante, SEM ser pergunta (ex: uma frase de efeito sobre o benefício do produto).",
-    "Um gatilho de urgência ou escassez (ex: mencionando que a oferta pode acabar, sem inventar prazo específico).",
-    "Um gatilho de curiosidade, como se estivesse revelando um segredo ou truque pouco conhecido.",
-    "Uma frase de tom bem-humorado ou descontraído, relacionável ao dia a dia.",
-    "Uma afirmação direta sobre o principal benefício do produto, em tom confiante (sem pergunta, sem 'cansado de').",
-    "Um gatilho de comparação (como era difícil antes vs. como fica fácil agora), em uma frase só.",
-    "Uma exclamação chamativa e direta ao ponto, como uma manchete de oferta.",
-]
-
-
 def gerar_conteudo_ia(produto: dict) -> dict:
-    estilo_sorteado = random.choice(ESTILOS_GANCHO)
     prompt = f"""
-Crie o conteúdo de um anúncio para um canal de ofertas no Telegram, no
-formato JSON, com EXATAMENTE estas duas chaves:
+Você escreve títulos de anúncio para um canal de ofertas no Telegram, no
+estilo direto e simples usado em anúncios da Shopee — SEM gatilho mental,
+SEM pergunta retórica, SEM frases tipo "cansado de", "já pensou em".
 
-- "gancho": uma frase curta (1 linha), com um emoji relevante no início.
-  ESTILO OBRIGATÓRIO para esta frase: {estilo_sorteado}
-  IMPORTANTE: não comece com "Cansada de", "Cansado de", "Sofrendo com",
-  "Quer garantir" ou variações parecidas — essas frases já foram usadas
-  demais e precisam ser evitadas.
+Analise o produto abaixo e responda em formato JSON puro, com EXATAMENTE
+estas duas chaves:
+
+- "titulo": um título curto e direto (até 12 palavras), descrevendo o
+  produto de forma objetiva e chamativa, do jeito que uma pessoa real
+  descreveria o produto pra vender rápido. Pode ter um toque de
+  personalidade/humor leve, mas sem ser uma pergunta nem um gatilho
+  psicológico. Exemplos do estilo esperado (não copie, apenas siga o
+  padrão):
+  "VARAL DE PAREDE AÇO REDOBRÁVEL 80KG 2 HASTES"
+  "2 TRAVESSEIROS DE ALGODÃO NO PRECINHO"
+  "LUMINÁRIA DE CABECEIRA PERFEITA PARA O SEU QUARTO"
+  "KIT BERMUDAS MASCULINA PARA TREINOS INTENSOS"
+  "PASTA DE DENTE PREMIUM PARA TIRAR O BAFÃO"
 - "descricao": uma frase curta (1 linha), com um emoji relevante no
   início, seguida do nome do produto e um traço "–" e uma explicação
   rápida do principal benefício.
@@ -351,17 +345,20 @@ Loja: {produto.get('shopName')}
 
     try:
         conteudo = json.loads(texto_limpo)
-        gancho = conteudo.get("gancho", "").strip()
+        titulo = conteudo.get("titulo", "").strip()
         descricao = conteudo.get("descricao", "").strip()
-        if gancho and descricao:
-            return {"gancho": gancho, "descricao": descricao}
-    except json.JSONDecodeError:
+
+        if titulo and descricao:
+            # Força caixa alta no código, independente do que a IA devolver,
+            # para garantir o padrão visual sempre — igual aos exemplos.
+            return {"gancho": titulo.upper(), "descricao": descricao}
+    except (json.JSONDecodeError, KeyError):
         pass
 
-    # Fallback: se a IA não devolveu um JSON válido, usa o texto bruto como
-    # gancho e monta uma descrição simples com o nome do produto.
+    # Fallback: se a IA não devolveu um JSON válido, usa o nome do produto
+    # em caixa alta como título.
     return {
-        "gancho": texto_bruto.split("\n")[0][:120],
+        "gancho": str(produto.get("productName", "")).upper()[:120],
         "descricao": f"🛒 {produto.get('productName')}",
     }
 
@@ -438,7 +435,7 @@ def postar_um_produto(keyword_hint_dia: str, estado: dict) -> bool:
 
     print("Gerando conteúdo com IA...")
     conteudo = gerar_conteudo_ia(produto)
-    print(f"Gancho: {conteudo['gancho']}\nDescrição: {conteudo['descricao']}")
+    print(f"Título: {conteudo['gancho']}\nDescrição: {conteudo['descricao']}")
 
     print("Enviando para o Telegram...")
     resultado = enviar_para_telegram(produto, conteudo)
@@ -464,10 +461,6 @@ def main():
         print(f"Nenhum horário pendente agora ({agora_hm} BRT). Encerrando sem postar.")
         return
 
-    # Se o GitHub atrasou a execução e vários horários já venceram, processa
-    # vários de uma vez nesta mesma execução (até o limite de segurança),
-    # em vez de recuperar só 1 por vez — assim o total do dia não fica
-    # perpetuamente atrasado.
     a_processar = horarios_pendentes[:MAX_POSTS_POR_EXECUCAO]
     print(
         f"{len(horarios_pendentes)} horário(s) pendente(s) (agora são {agora_hm} BRT). "
@@ -480,19 +473,15 @@ def main():
             keyword = escolher_keyword_do_dia()
             postou = postar_um_produto(keyword, estado)
         except Exception as erro:
-            # Uma falha pontual (ex: timeout de rede, instabilidade de API)
-            # não deve cancelar os outros horários pendentes desta execução.
-            # Não marcamos este horário como postado, para que seja
-            # tentado novamente na próxima execução.
             print(f"ERRO ao processar o horário '{horario_disparado}': {erro}")
             print("Pulando para o próximo horário pendente, se houver...")
             continue
 
         estado["horarios_postados"].append(horario_disparado)
-        salvar_estado(estado)  # salva a cada iteração, para não perder progresso
+        salvar_estado(estado)
 
         if postou and horario_disparado != a_processar[-1]:
-            time.sleep(3)  # pequena pausa entre envios, por segurança no Telegram
+            time.sleep(3)
 
 
 if __name__ == "__main__":
