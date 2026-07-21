@@ -179,43 +179,73 @@ def escolher_keyword_do_dia() -> str:
 
 
 # ---------------------------------------------------------------------------
-# Categorias populares: quando nenhuma campanha de data estiver ativa, o
-# robô sorteia uma dessas categorias a cada execução. Edite livremente.
+# Categorias populares: foco em "Casa e Estilo de Vida", com apelo
+# democrático (qualquer pessoa se interessa, independente de idade/gênero).
+# Baseado nas subcategorias reais de mais vendidos da Shopee (Casa e
+# Decoração, Eletrodomésticos). Quando nenhuma campanha de data estiver
+# ativa, o robô sorteia uma dessas a cada execução. Edite livremente.
 # ---------------------------------------------------------------------------
 TAGS_POPULARES = [
-    "eletronicos",
-    "eletronicos para casa",
-    "beleza e cuidado pessoal",
-    "casa e decoracao",
-    "moda feminina",
-    "moda masculina",
-    "cozinha utensilios",
-    "fitness e academia",
-    "smartphone acessorios",
-    "bolsas e mochilas",
-    "calcados",
-    "brinquedos infantil",
-    "kit",
-    "informatica gamer",
-    "relogios",
-    "organizacao domestica",
-    "skincare",
-    "fones de ouvido",
-    "ferramentas",
-    "papelaria",
-    "jardim e piscina",
+    "produtos de limpeza casa",
+    "organizador banheiro",
+    "prateleira organizadora parede",
+    "air fryer",
+    "panela especial cozinha",
+    "chaleira eletrica",
+    "jogo de lencol 400 fios",
+    "cobertor edredom",
+    "organizador cozinha gadget",
+    "luminaria decoracao quarto",
+    "eletroportateis cozinha compacto",
+    "varal roupas organizador",
+    "dispenser sabonete pia",
+    "utensilios cozinha praticos",
+    "decoracao minimalista casa",
+    "caixa organizadora armario",
+    "esfregao limpeza inovador",
+    "suporte organizador multiuso",
+    "travesseiro algodao",
+    "potes hermeticos cozinha",
 ]
 
 # Quantos produtos buscar por execução
 LIMIT = 50
 
+# ---------------------------------------------------------------------------
+# Blacklist: produtos com essas palavras no nome são descartados
+# automaticamente, mesmo que apareçam numa busca por categoria.
+# ---------------------------------------------------------------------------
+PALAVRAS_BLOQUEADAS = [
+    "barba", "barbear", "barbeador",
+    "costura", "linha de costura", "agulha de costura", "kit de costura",
+    "aparelho de barbear",
+]
+
+
+def produto_bloqueado(produto: dict) -> bool:
+    nome = str(produto.get("productName", "")).lower()
+
+    for palavra in PALAVRAS_BLOQUEADAS:
+        if palavra == "tesoura de corte":
+            if "tesoura" in nome and not any(
+                termo in nome for termo in ["cozinha", "culinaria", "culinária", "cozinhar"]
+            ):
+                return True
+        elif palavra in nome:
+            return True
+    return False
+
 
 # ---------------------------------------------------------------------------
-# Controle de estado: horários já disparados hoje + produtos já postados hoje
+# Controle de estado: horários já disparados hoje (reseta todo dia) +
+# produtos postados nos últimos 7 dias (não reseta, evita repetição).
 # ---------------------------------------------------------------------------
+DIAS_SEM_REPETIR_PRODUTO = 7
+
+
 def carregar_estado() -> dict:
     hoje = datetime.now().strftime("%Y-%m-%d")
-    padrao = {"data": hoje, "ids_enviados": [], "horarios_postados": []}
+    padrao = {"data": hoje, "horarios_postados": [], "produtos_enviados": {}}
 
     if not os.path.exists(ARQUIVO_ESTADO):
         return padrao
@@ -226,12 +256,32 @@ def carregar_estado() -> dict:
     except (json.JSONDecodeError, FileNotFoundError):
         return padrao
 
-    if dados.get("data") != hoje:
-        return padrao
-
-    dados.setdefault("ids_enviados", [])
+    dados.setdefault("produtos_enviados", {})
     dados.setdefault("horarios_postados", [])
+
+    if dados.get("data") != hoje:
+        dados["data"] = hoje
+        dados["horarios_postados"] = []
+
     return dados
+
+
+def limpar_produtos_antigos(estado: dict):
+    """Remove do histórico produtos enviados há mais de
+    DIAS_SEM_REPETIR_PRODUTO dias, para o arquivo não crescer para sempre."""
+    hoje = datetime.now().date()
+    limite = hoje - timedelta(days=DIAS_SEM_REPETIR_PRODUTO)
+
+    produtos_validos = {}
+    for item_id, data_str in estado["produtos_enviados"].items():
+        try:
+            data_envio = datetime.strptime(data_str, "%Y-%m-%d").date()
+        except ValueError:
+            continue
+        if data_envio >= limite:
+            produtos_validos[item_id] = data_str
+
+    estado["produtos_enviados"] = produtos_validos
 
 
 def salvar_estado(estado: dict):
@@ -250,7 +300,7 @@ def gerar_assinatura(app_id: str, timestamp: int, payload: str, secret: str) -> 
 def buscar_produtos_shopee(keyword: str, limit: int = 5) -> list:
     query = """
     query buscarProdutos($keyword: String, $limit: Int) {
-      productOfferV2(keyword: $keyword, limit: $limit, sortType: 2) {
+      productOfferV2(keyword: $keyword, limit: $limit, sortType: 5) {
         nodes {
           itemId
           productName
@@ -329,8 +379,6 @@ Loja: {produto.get('shopName')}
         f"gemini-flash-latest:generateContent?key={GEMINI_API_KEY}"
     )
 
-    # Tenta algumas vezes com espera crescente se bater no limite de
-    # requisições por minuto do plano gratuito do Gemini (erro 429).
     tentativas = 3
     espera = 15
     resp = None
@@ -345,12 +393,11 @@ Loja: {produto.get('shopName')}
             break
         print(f"Limite de requisições do Gemini atingido (tentativa {tentativa}/{tentativas}). Aguardando {espera}s...")
         time.sleep(espera)
-        espera *= 2  # próxima espera é o dobro, se precisar tentar de novo
+        espera *= 2
 
     resp.raise_for_status()
     texto_bruto = resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
 
-    # Remove eventuais marcações de bloco de código (```json ... ```)
     texto_limpo = re.sub(r"^```(json)?|```$", "", texto_bruto.strip(), flags=re.MULTILINE).strip()
 
     try:
@@ -429,15 +476,25 @@ def postar_um_produto(keyword_hint_dia: str, estado: dict) -> bool:
         print("Nenhum produto encontrado para essa keyword.")
         return False
 
-    ids_enviados = set(estado["ids_enviados"])
-    produtos_novos = [p for p in produtos if str(p["itemId"]) not in ids_enviados]
+    antes = len(produtos)
+    produtos = [p for p in produtos if not produto_bloqueado(p)]
+    if len(produtos) < antes:
+        print(f"{antes - len(produtos)} produto(s) removido(s) pela blacklist.")
+
+    if not produtos:
+        print("Todos os produtos encontrados estavam na blacklist.")
+        return False
+
+    enviados = estado["produtos_enviados"]
+    produtos_novos = [p for p in produtos if str(p["itemId"]) not in enviados]
 
     if not produtos_novos:
-        print("Todos os produtos encontrados já foram postados hoje. Permitindo repetição.")
+        print(f"Todos os produtos já foram postados nos últimos {DIAS_SEM_REPETIR_PRODUTO} dias. Permitindo repetição.")
         produtos_novos = produtos
 
-    produto = random.choice(produtos_novos)
-    print(f"Produto escolhido: {produto['productName']}")
+    produtos_novos.sort(key=lambda p: float(p.get("commissionRate", 0) or 0), reverse=True)
+    produto = produtos_novos[0]
+    print(f"Produto escolhido (comissão {produto.get('commissionRate')}): {produto['productName']}")
 
     print("Gerando conteúdo com IA...")
     conteudo = gerar_conteudo_ia(produto)
@@ -447,7 +504,7 @@ def postar_um_produto(keyword_hint_dia: str, estado: dict) -> bool:
     resultado = enviar_para_telegram(produto, conteudo)
     print("Enviado com sucesso!", resultado.get("ok"))
 
-    estado["ids_enviados"].append(str(produto["itemId"]))
+    estado["produtos_enviados"][str(produto["itemId"])] = datetime.now().strftime("%Y-%m-%d")
     return True
 
 
@@ -456,6 +513,7 @@ def main():
     agora_hm = agora_brt.strftime("%H:%M")
 
     estado = carregar_estado()
+    limpar_produtos_antigos(estado)
     horarios_alvo = gerar_horarios_alvo()
 
     horarios_pendentes = [
@@ -482,14 +540,14 @@ def main():
             print(f"ERRO ao processar o horário '{horario_disparado}': {erro}")
             print("Pulando para o próximo horário pendente, se houver...")
             if horario_disparado != a_processar[-1]:
-                time.sleep(8)  # pausa mesmo em caso de erro, para não repetir rajada
+                time.sleep(8)
             continue
 
         estado["horarios_postados"].append(horario_disparado)
-        salvar_estado(estado)  # salva a cada iteração, para não perder progresso
+        salvar_estado(estado)
 
         if postou and horario_disparado != a_processar[-1]:
-            time.sleep(8)  # pausa entre envios, respeitando o limite do Gemini
+            time.sleep(8)
 
 
 if __name__ == "__main__":
