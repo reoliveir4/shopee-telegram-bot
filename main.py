@@ -163,8 +163,6 @@ def escolher_keyword_do_dia() -> str:
     hoje = datetime.now().date()
 
     for campanha in CAMPANHAS_POR_DATA:
-        # Considera tanto a ocorrência deste ano quanto a do ano seguinte,
-        # para cobrir corretamente campanhas próximas da virada do ano.
         for ano in (hoje.year, hoje.year + 1):
             evento = _data_do_evento(campanha, ano)
             inicio = evento - timedelta(days=campanha["dias_antecedencia"])
@@ -331,12 +329,24 @@ Loja: {produto.get('shopName')}
         f"gemini-flash-latest:generateContent?key={GEMINI_API_KEY}"
     )
 
-    resp = requests.post(
-        url,
-        headers={"content-type": "application/json"},
-        json={"contents": [{"parts": [{"text": prompt}]}]},
-        timeout=60,
-    )
+    # Tenta algumas vezes com espera crescente se bater no limite de
+    # requisições por minuto do plano gratuito do Gemini (erro 429).
+    tentativas = 3
+    espera = 15
+    resp = None
+    for tentativa in range(1, tentativas + 1):
+        resp = requests.post(
+            url,
+            headers={"content-type": "application/json"},
+            json={"contents": [{"parts": [{"text": prompt}]}]},
+            timeout=60,
+        )
+        if resp.status_code != 429:
+            break
+        print(f"Limite de requisições do Gemini atingido (tentativa {tentativa}/{tentativas}). Aguardando {espera}s...")
+        time.sleep(espera)
+        espera *= 2  # próxima espera é o dobro, se precisar tentar de novo
+
     resp.raise_for_status()
     texto_bruto = resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
 
@@ -349,14 +359,10 @@ Loja: {produto.get('shopName')}
         descricao = conteudo.get("descricao", "").strip()
 
         if titulo and descricao:
-            # Força caixa alta no código, independente do que a IA devolver,
-            # para garantir o padrão visual sempre — igual aos exemplos.
             return {"gancho": titulo.upper(), "descricao": descricao}
     except (json.JSONDecodeError, KeyError):
         pass
 
-    # Fallback: se a IA não devolveu um JSON válido, usa o nome do produto
-    # em caixa alta como título.
     return {
         "gancho": str(produto.get("productName", "")).upper()[:120],
         "descricao": f"🛒 {produto.get('productName')}",
@@ -475,13 +481,15 @@ def main():
         except Exception as erro:
             print(f"ERRO ao processar o horário '{horario_disparado}': {erro}")
             print("Pulando para o próximo horário pendente, se houver...")
+            if horario_disparado != a_processar[-1]:
+                time.sleep(8)  # pausa mesmo em caso de erro, para não repetir rajada
             continue
 
         estado["horarios_postados"].append(horario_disparado)
-        salvar_estado(estado)
+        salvar_estado(estado)  # salva a cada iteração, para não perder progresso
 
         if postou and horario_disparado != a_processar[-1]:
-            time.sleep(3)
+            time.sleep(8)  # pausa entre envios, respeitando o limite do Gemini
 
 
 if __name__ == "__main__":
