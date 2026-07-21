@@ -13,6 +13,15 @@ on:
 
 permissions:
   contents: write  # necessário para o robô salvar o arquivo de controle (estado.json)
+
+# Impede que 2 execuções rodem ao mesmo tempo (ex: o schedule do GitHub e
+# o cron-job.org disparando juntos). Se uma nova tentar começar enquanto
+# outra ainda está rodando, ela fica na fila em vez de rodar em paralelo
+# — evita conflito ao salvar o estado.json e posts duplicados.
+concurrency:
+  group: postar-shopee-telegram
+  cancel-in-progress: false
+
 jobs:
   postar:
     runs-on: ubuntu-latest
