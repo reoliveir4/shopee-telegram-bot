@@ -159,7 +159,10 @@ CAMPANHAS_POR_DATA = [
 ]
 
 
-def escolher_keyword_do_dia() -> str:
+CATEGORIAS_EM_COOLDOWN = 6  # não repete a mesma categoria nas últimas N escolhas
+
+
+def escolher_keyword_do_dia(estado: dict) -> str:
     hoje = datetime.now().date()
 
     for campanha in CAMPANHAS_POR_DATA:
@@ -173,8 +176,20 @@ def escolher_keyword_do_dia() -> str:
     if KEYWORD_FIXA:
         return KEYWORD_FIXA
 
-    keyword_sorteada = random.choice(TAGS_POPULARES)
+    # Evita repetir uma categoria usada recentemente, para não bater sempre
+    # no mesmo produto de maior comissão daquela categoria.
+    recentes = estado.get("categorias_recentes", [])
+    candidatas = [t for t in TAGS_POPULARES if t not in recentes]
+    if not candidatas:
+        candidatas = TAGS_POPULARES  # todas em cooldown: libera de novo
+
+    keyword_sorteada = random.choice(candidatas)
     print(f"Nenhuma campanha ativa. Categoria sorteada: '{keyword_sorteada}'")
+
+    estado.setdefault("categorias_recentes", [])
+    estado["categorias_recentes"].append(keyword_sorteada)
+    estado["categorias_recentes"] = estado["categorias_recentes"][-CATEGORIAS_EM_COOLDOWN:]
+
     return keyword_sorteada
 
 
@@ -273,13 +288,15 @@ def limpar_produtos_antigos(estado: dict):
     limite = hoje - timedelta(days=DIAS_SEM_REPETIR_PRODUTO)
 
     produtos_validos = {}
-    for item_id, data_str in estado["produtos_enviados"].items():
+    for item_id, info in estado["produtos_enviados"].items():
+        # Compatibilidade com o formato antigo (só uma string de data)
+        data_str = info.get("data") if isinstance(info, dict) else info
         try:
             data_envio = datetime.strptime(data_str, "%Y-%m-%d").date()
-        except ValueError:
+        except (ValueError, TypeError):
             continue
         if data_envio >= limite:
-            produtos_validos[item_id] = data_str
+            produtos_validos[item_id] = info if isinstance(info, dict) else {"data": info, "nome": ""}
 
     estado["produtos_enviados"] = produtos_validos
 
@@ -466,6 +483,27 @@ def enviar_para_telegram(produto: dict, conteudo: dict):
 MAX_POSTS_POR_EXECUCAO = 15  # limite de segurança por execução, para não estourar o tempo do job
 
 
+def _palavras_significativas(nome: str) -> set:
+    """Extrai palavras com mais de 3 letras, ignorando números, para
+    comparar se dois produtos são 'do mesmo tipo' (ex: duas mantas
+    diferentes, mesmo com nomes/IDs diferentes)."""
+    palavras = re.findall(r"[a-zà-ú]{4,}", nome.lower())
+    return set(palavras)
+
+
+def produtos_parecidos(nome1: str, nome2: str) -> bool:
+    p1 = _palavras_significativas(nome1)
+    p2 = _palavras_significativas(nome2)
+    if not p1 or not p2:
+        return False
+    intersecao = p1 & p2
+    menor = min(len(p1), len(p2))
+    return len(intersecao) / menor >= 0.6
+
+
+TOP_N_PARA_SORTEIO = 8  # sorteia entre os N de maior comissão, não sempre o 1º
+
+
 def postar_um_produto(keyword_hint_dia: str, estado: dict) -> bool:
     """Busca, gera conteúdo e posta 1 produto. Retorna True se postou."""
     keyword = keyword_hint_dia
@@ -486,14 +524,23 @@ def postar_um_produto(keyword_hint_dia: str, estado: dict) -> bool:
         return False
 
     enviados = estado["produtos_enviados"]
-    produtos_novos = [p for p in produtos if str(p["itemId"]) not in enviados]
+    nomes_recentes = [info["nome"] for info in enviados.values() if isinstance(info, dict) and info.get("nome")]
+
+    produtos_novos = []
+    for p in produtos:
+        if str(p["itemId"]) in enviados:
+            continue
+        if any(produtos_parecidos(p["productName"], nome_antigo) for nome_antigo in nomes_recentes):
+            continue
+        produtos_novos.append(p)
 
     if not produtos_novos:
-        print(f"Todos os produtos já foram postados nos últimos {DIAS_SEM_REPETIR_PRODUTO} dias. Permitindo repetição.")
+        print(f"Todos os produtos encontrados já foram postados (ou são parecidos com algo postado) nos últimos {DIAS_SEM_REPETIR_PRODUTO} dias. Permitindo repetição.")
         produtos_novos = produtos
 
     produtos_novos.sort(key=lambda p: float(p.get("commissionRate", 0) or 0), reverse=True)
-    produto = produtos_novos[0]
+    candidatos = produtos_novos[:TOP_N_PARA_SORTEIO]
+    produto = random.choice(candidatos)
     print(f"Produto escolhido (comissão {produto.get('commissionRate')}): {produto['productName']}")
 
     print("Gerando conteúdo com IA...")
@@ -504,7 +551,10 @@ def postar_um_produto(keyword_hint_dia: str, estado: dict) -> bool:
     resultado = enviar_para_telegram(produto, conteudo)
     print("Enviado com sucesso!", resultado.get("ok"))
 
-    estado["produtos_enviados"][str(produto["itemId"])] = datetime.now().strftime("%Y-%m-%d")
+    estado["produtos_enviados"][str(produto["itemId"])] = {
+        "data": datetime.now().strftime("%Y-%m-%d"),
+        "nome": produto["productName"],
+    }
     return True
 
 
@@ -534,7 +584,7 @@ def main():
     for horario_disparado in a_processar:
         print(f"\n--- Horário-alvo '{horario_disparado}' ---")
         try:
-            keyword = escolher_keyword_do_dia()
+            keyword = escolher_keyword_do_dia(estado)
             postou = postar_um_produto(keyword, estado)
         except Exception as erro:
             print(f"ERRO ao processar o horário '{horario_disparado}': {erro}")
