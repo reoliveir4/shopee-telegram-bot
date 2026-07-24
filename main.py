@@ -299,7 +299,7 @@ TAGS_POPULARES = [
 ]
 
 # Quantos produtos buscar por execução
-LIMIT = 100
+LIMIT = 50
 
 # ---------------------------------------------------------------------------
 # Blacklist: produtos com essas palavras no nome são descartados
