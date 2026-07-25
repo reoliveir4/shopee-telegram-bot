@@ -176,12 +176,10 @@ def escolher_keyword_do_dia(estado: dict) -> str:
     if KEYWORD_FIXA:
         return KEYWORD_FIXA
 
-    # Evita repetir uma categoria usada recentemente, para não bater sempre
-    # no mesmo produto de maior comissão daquela categoria.
     recentes = estado.get("categorias_recentes", [])
     candidatas = [t for t in TAGS_POPULARES if t not in recentes]
     if not candidatas:
-        candidatas = TAGS_POPULARES  # todas em cooldown: libera de novo
+        candidatas = TAGS_POPULARES
 
     keyword_sorteada = random.choice(candidatas)
     print(f"Nenhuma campanha ativa. Categoria sorteada: '{keyword_sorteada}'")
@@ -194,103 +192,62 @@ def escolher_keyword_do_dia(estado: dict) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Categorias populares: foco em "Casa e Estilo de Vida", com apelo
-# democrático (qualquer pessoa se interessa, independente de idade/gênero).
-# Baseado nas subcategorias reais de mais vendidos da Shopee (Casa e
-# Decoração, Eletrodomésticos). Quando nenhuma campanha de data estiver
-# ativa, o robô sorteia uma dessas a cada execução. Edite livremente.
+# Categorias populares — frases específicas (não palavras soltas), pra
+# evitar bater em categorias erradas por ambiguidade.
 # ---------------------------------------------------------------------------
 TAGS_POPULARES = [
-   "produtos de limpeza casa",
-   "organizador",
-   "organizadora",
-   "air fryer",
-   "panela especial cozinha",
-   "kit",
-   "kit camisa",
-   "kit calça",
-   "painel",
-   "agua perfumada",
-   "organizador cozinha gadget",
-   "luminaria decoracao quarto",
-   "eletroportateis cozinha compacto",
-   "varal roupas organizador",
-   "dispenser sabonete pia",
-   "utensilios cozinha praticos",
-   "decoracao minimalista casa",
-   "caixa organizadora armario",
-   "esfregao limpeza inovador",
-   "suporte",
-   "algodao",
-   "cozinha",
-   "retratil",
-   "secador",
-   "tenis", 
-   "desentupidor",
-   "kit 3",
-   "prateleira",
-   "iphone",
-   "massageador",
-   "maquina",
-   "lava e seca",
-   "limpeza",
-   "kit com 5",
-   "mini game",
-   "secador roupas",
-   "estacao de musculacao",
-   "halteres",
-   "camera digital",
-   "purificador de agua",
-   "pc gamer",
-   "adesivo estrela",
-   "playstation 5",
-   "ps5",
-   "video game",
-   "peido spray",
-   "antena digital",
-   "projetor",
-   "jaqueta",
-   "caneta magica 3D",
-   "extratora",
-   "antiaderente",
-   "carabina",
-   "retro",
-   "canivete",
-   "mini fotos",
-   "revolver airgun",
-   "portatil",
-   "moletom",
-   "colonia cebolinha",
-   "processador",
-   "alisadora",
-   "esteira",
-   "cofre",
-   "tablet",
-   "galaxy",
-   "samsung",
-   "nerd geek",
-   "arranhador",
-   "impermeavel",
-   "ferramenta dobravel",
-   "smartphone",
-   "fritadeira",
-   "colchao massageador",
-   "cooktop",
-   "filtro universal",
-   "robo aspirador",
-   "espelho",
-   "utensilios",
-   "manta",
-   "hermetico",
-   "escova limpa grelha",
-   "descascador eletrico",
-   "jogo magnetico",
-   "seca tenis",
-   "ventilador torre",
-   "passadeira a vapor",
-   "painel solar",
-   "secador inteligente",
-   "ecologico",
+    # Casa e organização
+    "organizador de armario multiuso",
+    "caixa organizadora empilhavel",
+    "prateleira organizadora de parede",
+    "varal de roupas retratil",
+    "dispenser de sabonete para pia",
+    "esfregao de limpeza multiuso",
+    "produtos de limpeza para casa",
+    "luminaria de decoracao para quarto",
+    "decoracao minimalista para casa",
+    # Cozinha
+    "air fryer eletrica",
+    "panela eletrica multifuncional",
+    "processador de alimentos eletrico",
+    "potes hermeticos para cozinha",
+    "descascador de legumes eletrico",
+    "escova eletrica para limpar grelha",
+    # Eletroportáteis e casa inteligente
+    "robo aspirador de po",
+    "purificador de agua eletrico",
+    "ventilador de torre eletrico",
+    "passadeira de roupas a vapor",
+    "cooktop portatil eletrico",
+    # Cuidados pessoais (unissex)
+    "secador de cabelo profissional",
+    "alisadora de cabelo eletrica",
+    "massageador eletrico portatil",
+    "colchao massageador eletrico",
+    # Cama e banho
+    "jogo de lencol 400 fios",
+    "manta cobertor para casal",
+    "travesseiro de algodao",
+    # Tecnologia e games (apelo amplo)
+    "fone de ouvido bluetooth",
+    "power bank portatil",
+    "mini projetor portatil",
+    "camera digital compacta",
+    "console de video game retro portatil",
+    "tablet android",
+    # Fitness
+    "estacao de musculacao dobravel",
+    "halteres ajustaveis",
+    "esteira eletrica dobravel",
+    # Moda básica (unissex)
+    "kit de camisetas basicas",
+    "moletom unissex",
+    "jaqueta corta vento",
+    # Utilidades e curiosidades
+    "canivete multifuncional",
+    "ferramenta dobravel multiuso",
+    "caneta 3d para desenho",
+    "revolver de pressao replica brinquedo",
 ]
 
 # Quantos produtos buscar por execução
@@ -303,7 +260,13 @@ LIMIT = 50
 PALAVRAS_BLOQUEADAS = [
     "barba", "barbear", "barbeador",
     "costura", "linha de costura", "agulha de costura", "kit de costura",
-    "aparelho de barbear", "escultura", 
+    "aparelho de barbear",
+    # Peças automotivas (apareciam em buscas por palavras ambíguas como
+    # "elétrico", ex: "vidro elétrico", "máquina de vidro")
+    "vidro eletrico", "maquina de vidro", "retrovisor", "farol",
+    "parachoque", "para-choque", "motorista", "carona", "dianteira",
+    "traseira", "automotivo", "veicular", "regulador de vidro",
+    "peca automotiva", "capa de banco",
 ]
 
 
@@ -319,6 +282,27 @@ def produto_bloqueado(produto: dict) -> bool:
         elif palavra in nome:
             return True
     return False
+
+
+# ---------------------------------------------------------------------------
+# Exclusões específicas por categoria: além da blacklist geral, algumas
+# palavras-chave precisam de um filtro extra pra não trazer só acessórios
+# em vez do produto principal (ex: buscar "revólver de pressão" e vir só
+# capa/coldre/estojo, sem o brinquedo em si).
+# ---------------------------------------------------------------------------
+EXCLUSOES_POR_CATEGORIA = {
+    "revolver de pressao replica brinquedo": [
+        "capa", "coldre", "estojo", "case", "bolsa", "cinto", "suporte de parede",
+    ],
+}
+
+
+def produto_bloqueado_pela_categoria(produto: dict, keyword: str) -> bool:
+    exclusoes = EXCLUSOES_POR_CATEGORIA.get(keyword)
+    if not exclusoes:
+        return False
+    nome = str(produto.get("productName", "")).lower()
+    return any(termo in nome for termo in exclusoes)
 
 
 # ---------------------------------------------------------------------------
@@ -359,7 +343,6 @@ def limpar_produtos_antigos(estado: dict):
 
     produtos_validos = {}
     for item_id, info in estado["produtos_enviados"].items():
-        # Compatibilidade com o formato antigo (só uma string de data)
         data_str = info.get("data") if isinstance(info, dict) else info
         try:
             data_envio = datetime.strptime(data_str, "%Y-%m-%d").date()
@@ -554,9 +537,6 @@ MAX_POSTS_POR_EXECUCAO = 15  # limite de segurança por execução, para não es
 
 
 def _palavras_significativas(nome: str) -> set:
-    """Extrai palavras com mais de 3 letras, ignorando números, para
-    comparar se dois produtos são 'do mesmo tipo' (ex: duas mantas
-    diferentes, mesmo com nomes/IDs diferentes)."""
     palavras = re.findall(r"[a-zà-ú]{4,}", nome.lower())
     return set(palavras)
 
@@ -588,6 +568,11 @@ def postar_um_produto(keyword_hint_dia: str, estado: dict) -> bool:
     produtos = [p for p in produtos if not produto_bloqueado(p)]
     if len(produtos) < antes:
         print(f"{antes - len(produtos)} produto(s) removido(s) pela blacklist.")
+
+    antes = len(produtos)
+    produtos = [p for p in produtos if not produto_bloqueado_pela_categoria(p, keyword)]
+    if len(produtos) < antes:
+        print(f"{antes - len(produtos)} produto(s) removido(s) pela exclusão específica da categoria '{keyword}'.")
 
     if not produtos:
         print("Todos os produtos encontrados estavam na blacklist.")
