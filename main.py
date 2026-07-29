@@ -159,7 +159,7 @@ CAMPANHAS_POR_DATA = [
 ]
 
 
-CATEGORIAS_EM_COOLDOWN = 6  # não repete a mesma categoria nas últimas N escolhas
+CATEGORIAS_EM_COOLDOWN = 12  # não repete a mesma categoria nas últimas N escolhas
 
 
 def escolher_keyword_do_dia(estado: dict) -> str:
@@ -191,10 +191,6 @@ def escolher_keyword_do_dia(estado: dict) -> str:
     return keyword_sorteada
 
 
-# ---------------------------------------------------------------------------
-# Categorias populares — frases específicas (não palavras soltas), pra
-# evitar bater em categorias erradas por ambiguidade.
-# ---------------------------------------------------------------------------
 TAGS_POPULARES = [
     # Casa e organização
     "organizador de armario multiuso",
@@ -205,32 +201,12 @@ TAGS_POPULARES = [
     "esfregao de limpeza multiuso",
     "produtos de limpeza para casa",
     "luminaria de decoracao para quarto",
-    "porta ovos deslizante",
-    "escova de limpeza multifuncional",
-    "tira manchas alvejante",
-    "cuscuzeiro individual",
-    "protetor de ralos",
-    "saco de lixo resistente",
-    "kit facas cozinha",
-    "mangueira mágica",
-    "fita selante de pvc",
-    "prendendor de cortina",
-    "bolsa termica",
-    "prato fundo",
-    "tela mosqueteiro para janela",
-    "placas 3D PVC",
-    "capa para maquina de lavar",
-    "extratora higienizadora",
-    "mini maquina de lavar",
-    "mini processador de alimentos",
-    "ventilador de teto",
-    "aspirador de pó sem fio",
-    "kit protetor de tomada bebe",
-    "adaptador cubo tomada",
-    "mini ferro de passar roupa",
-    "maquina de donuts",
-    "batedor misturador mixer",
-    "antena digital interna externa",
+    "decoracao minimalista para casa",
+    "organizador de gaveta multiuso",
+    "cabide organizador de roupas",
+    "tapete decorativo para sala",
+    "cortina de blackout para quarto",
+    "porta trecos organizador de mesa",
     # Cozinha
     "air fryer eletrica",
     "panela eletrica multifuncional",
@@ -238,176 +214,75 @@ TAGS_POPULARES = [
     "potes hermeticos para cozinha",
     "descascador de legumes eletrico",
     "escova eletrica para limpar grelha",
-    "jogo de taças diamante",
-    "potes bowl",
-    "liquidificador portatil",
-    "mixer philco",
-    "grill e sanduicheira",
-    "mini ventilador e umidificador",
-    "mata mofo spray",
-    "espuma spray zip clean",
-    "saco de lixo perfumado",
+    "liquidificador portatil eletrico",
+    "kit de facas para cozinha",
+    "organizador de temperos para cozinha",
+    "forma de silicone para cozinha",
     # Eletroportáteis e casa inteligente
     "robo aspirador de po",
     "purificador de agua eletrico",
     "ventilador de torre eletrico",
     "passadeira de roupas a vapor",
     "cooktop portatil eletrico",
-    "aspirador de pó portatil",
-    "suporte de base com rodinha",
-    "extensao eletrica",
-    "secador de roupas portatil",
-    "lixeira automatica tampa click",
-    "gaveteiro empilhavel porta ovos",
-    "churrasqueira a bafo portatil",
+    "umidificador de ar eletrico",
+    "aspirador de po portatil",
     # Cuidados pessoais (unissex)
     "secador de cabelo profissional",
+    "alisadora de cabelo eletrica",
     "massageador eletrico portatil",
     "colchao massageador eletrico",
-    "escova de drenagem facial",
-    "mascara LED facial",
-    "mesinha manicure profissional",
-    "prancha alisadora",
-    "kit 3 unidades sabonete liquido",
-    "mascara lola morte súbita",
-    "oleo de girassol cicatrizante",
-    "serum amolecedor de cravos",    
+    "barbeador eletrico recarregavel",
+    "escova de dente eletrica",
+    "aparador de pelos eletrico",
     # Cama e banho
     "jogo de lencol 400 fios",
     "manta cobertor para casal",
     "travesseiro de algodao",
-    "capa de colchao impermeavel",
-    "lencol impermeavel",
-    "conjunto mala de viagem",
+    "toalha de banho felpuda",
+    "kit de tapetes para banheiro",
     # Tecnologia e games (apelo amplo)
     "fone de ouvido bluetooth",
     "power bank portatil",
     "mini projetor portatil",
-    "Console PlayStation 5",
+    "camera digital compacta",
     "console de video game retro portatil",
     "tablet android",
-    "Nintendo Switch",
-    "Apple iPhone",
-    "Console Portátil Asus",
-    "Xiaomi 17",
+    "caixa de som bluetooth portatil",
+    "smartwatch relogio inteligente",
+    "mouse e teclado sem fio",
+    "carregador rapido para celular",
     # Fitness
     "estacao de musculacao dobravel",
     "halteres ajustaveis",
     "esteira eletrica dobravel",
-    "kit treine em casa",
-    "corda de pular crossfit",
-    "aderencia de mao hand grip",
-    "camisa termica segunda pele",
-    "bike ergometrica",
-    "prancha de flexao de braço",
-    "short dry fit",
-    "caneleira de peso tornozeleira",
-    "banco de academia reto",
-    "step academia",
-    "kit elastico para treino",
-    "roda abdominal treino",
-    "colchonete academia",
-    "strap musculação",
-    "bermuda short compressao",
+    "faixa elastica para exercicio",
+    "corda de pular para treino",
     # Moda básica (unissex)
     "kit de camisetas basicas",
     "moletom unissex",
     "jaqueta corta vento",
-    "Camiseta Oversized",
-    "Bermudas Linho Masculino",
-    "Bermuda Moletom",
-    "relogio masculino minimalista",
-    "tenis de corrida profissional",
-    "chinelo tira tecido antiderrapante",
-    "roupao microfibra adulto",
-    "kit escovas de cabelo",
-    "clareador de axilas e virilhas",
-    "kit calça moletom algodão",
-    "chinelo pantufa",
-    "tenis esportivo confortavel",
-    "tenis profissional placa de carbono",
-    "tenis de malha respiravel",
+    "mochila para notebook",
+    "oculos de sol unissex",
     # Utilidades e curiosidades
     "canivete multifuncional",
     "ferramenta dobravel multiuso",
     "caneta 3d para desenho",
-    "revolver de pressao",
-    "decanter whisky pistola",
-    "pistola eletrica pulverizadora",
-    "massageador eletrico portatil",
-    "tuff sem passar desamassa roupas",
-    "massageador de pescoço",
-    "elimina odor xixi pet",
-    "sapateira com portas armario",
-    "kit anti mofo evita fungos",
-    "varal portatil de janela",
-    "microfone lapela sem fio",
-    "chinelo feminino nuvem",
-    "chinelo masculino nuvem",
-    "comedouro e bebedouro automático",
-    "pipoqueira eletrica",
-    "bomba de ar eletrica",
-    "conjunto de cabeceiras em modulos nuvem",
-    "mesa dobravel notebook",
-    "forma pudim banho maria",
-    "ventilador com luminária",
-    "guarda roupa casal grande",
-    "organizador tempero prateleira",
-    "kit pano de limpeza microfibra",
-    "escorredor de louça rack de cozinha",
-    "kit poltrona e puff",
-    "mesa de jantar",
-    "fatiador ralador profisisonal",
-    "lavadora alta pressao",
-    "termometro de testa",
-    " panela de pressao indução",
-    "inflador eletrico de balões",
-   # Brinquedos e jogos
-    "jogo das sílabas brinquedo",
-    "cubo sensorial",
-    "jogo tecla letras",
-    "cubo infinito",
-    "jogo de desatar",
-    "brinquedo educativo",
-    "jogo da memoria tipo genius",
-    "jogo do varal brinquedo",
-    "mini campo de futebol",
-    "kit carrinhos relampago",
-    "jogo tira varetas",
-    "brinquedo sapinho pega bolinha",
-    "jogo da forca interativo",
-    "caminhão carrinho controle remoto",
-    "laboratorio infantil de quimica",
-    "brinquedo interativo pegue o ouro da cobra",
-    "jogo não acorde o cachorro",
-    "jogo tapa certo estrela maozinha",
-    "escavadeira de liga com controle remoto",
-    "verdade ou desafio jogo de tabuleiro",
-    "jogo pizzaria maluca",
-    "brinquedo carrinho controle remoto",
-    "brinquedo jogo de bingo",
-    "jogo educativo aprendendo os opostos",
-    "carrinho de controle remoto acrobatico",
-    "helicoptero de controle remoto",
+    "revolver de pressao replica brinquedo",
+    "lanterna tatica recarregavel",
+    "kit de ferramentas para casa",
+    "mochila impermeavel para viagem",
 ]
 
-# Quantos produtos buscar por execução
 LIMIT = 50
 
-# ---------------------------------------------------------------------------
-# Blacklist: produtos com essas palavras no nome são descartados
-# automaticamente, mesmo que apareçam numa busca por categoria.
-# ---------------------------------------------------------------------------
 PALAVRAS_BLOQUEADAS = [
     "barba", "barbear", "barbeador",
     "costura", "linha de costura", "agulha de costura", "kit de costura",
     "aparelho de barbear",
-    # Peças automotivas (apareciam em buscas por palavras ambíguas como
-    # "elétrico", ex: "vidro elétrico", "máquina de vidro")
     "vidro eletrico", "maquina de vidro", "retrovisor", "farol",
     "parachoque", "para-choque", "motorista", "carona", "dianteira",
     "traseira", "automotivo", "veicular", "regulador de vidro",
-    "peca automotiva", "capa de banco", "formex", 
+    "peca automotiva", "capa de banco",
 ]
 
 
@@ -425,12 +300,6 @@ def produto_bloqueado(produto: dict) -> bool:
     return False
 
 
-# ---------------------------------------------------------------------------
-# Exclusões específicas por categoria: além da blacklist geral, algumas
-# palavras-chave precisam de um filtro extra pra não trazer só acessórios
-# em vez do produto principal (ex: buscar "revólver de pressão" e vir só
-# capa/coldre/estojo, sem o brinquedo em si).
-# ---------------------------------------------------------------------------
 EXCLUSOES_POR_CATEGORIA = {
     "revolver de pressao replica brinquedo": [
         "capa", "coldre", "estojo", "case", "bolsa", "cinto", "suporte de parede",
@@ -446,10 +315,6 @@ def produto_bloqueado_pela_categoria(produto: dict, keyword: str) -> bool:
     return any(termo in nome for termo in exclusoes)
 
 
-# ---------------------------------------------------------------------------
-# Controle de estado: horários já disparados hoje (reseta todo dia) +
-# produtos postados nos últimos 7 dias (não reseta, evita repetição).
-# ---------------------------------------------------------------------------
 DIAS_SEM_REPETIR_PRODUTO = 7
 
 
@@ -477,8 +342,6 @@ def carregar_estado() -> dict:
 
 
 def limpar_produtos_antigos(estado: dict):
-    """Remove do histórico produtos enviados há mais de
-    DIAS_SEM_REPETIR_PRODUTO dias, para o arquivo não crescer para sempre."""
     hoje = datetime.now().date()
     limite = hoje - timedelta(days=DIAS_SEM_REPETIR_PRODUTO)
 
@@ -500,9 +363,6 @@ def salvar_estado(estado: dict):
         json.dump(estado, f)
 
 
-# ---------------------------------------------------------------------------
-# 1) Autenticação e chamada à API da Shopee
-# ---------------------------------------------------------------------------
 def gerar_assinatura(app_id: str, timestamp: int, payload: str, secret: str) -> str:
     base_string = f"{app_id}{timestamp}{payload}{secret}"
     return hashlib.sha256(base_string.encode("utf-8")).hexdigest()
@@ -551,9 +411,6 @@ def buscar_produtos_shopee(keyword: str, limit: int = 5) -> list:
     return data["data"]["productOfferV2"]["nodes"]
 
 
-# ---------------------------------------------------------------------------
-# 2) Geração automática do conteúdo (título + descrição) com Google Gemini
-# ---------------------------------------------------------------------------
 def gerar_conteudo_ia(produto: dict) -> dict:
     prompt = f"""
 Você escreve títulos de anúncio para um canal de ofertas no Telegram, no
@@ -645,9 +502,6 @@ def montar_linha_preco(produto: dict) -> str:
     return f"💰 {formatar_preco(preco)}"
 
 
-# ---------------------------------------------------------------------------
-# 3) Envio para o Telegram
-# ---------------------------------------------------------------------------
 def enviar_para_telegram(produto: dict, conteudo: dict):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
 
@@ -671,10 +525,7 @@ def enviar_para_telegram(produto: dict, conteudo: dict):
     return resp.json()
 
 
-# ---------------------------------------------------------------------------
-# Execução principal
-# ---------------------------------------------------------------------------
-MAX_POSTS_POR_EXECUCAO = 15  # limite de segurança por execução, para não estourar o tempo do job
+MAX_POSTS_POR_EXECUCAO = 15
 
 
 def _palavras_significativas(nome: str) -> set:
@@ -692,11 +543,10 @@ def produtos_parecidos(nome1: str, nome2: str) -> bool:
     return len(intersecao) / menor >= 0.6
 
 
-TOP_N_PARA_SORTEIO = 8  # sorteia entre os N de maior comissão, não sempre o 1º
+TOP_N_PARA_SORTEIO = 25
 
 
 def postar_um_produto(keyword_hint_dia: str, estado: dict) -> bool:
-    """Busca, gera conteúdo e posta 1 produto. Retorna True se postou."""
     keyword = keyword_hint_dia
     print(f"Buscando produtos para a palavra-chave: '{keyword}'...")
     produtos = buscar_produtos_shopee(keyword, LIMIT)
@@ -755,7 +605,7 @@ def postar_um_produto(keyword_hint_dia: str, estado: dict) -> bool:
 
 
 def main():
-    agora_brt = datetime.utcnow() - timedelta(hours=3)  # Brasília = UTC-3
+    agora_brt = datetime.utcnow() - timedelta(hours=3)
     agora_hm = agora_brt.strftime("%H:%M")
 
     estado = carregar_estado()
