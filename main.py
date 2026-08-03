@@ -132,7 +132,7 @@ CAMPANHAS_POR_DATA = [
          "perfume unissex", "conjunto pijama casal", "kit spa casal",
          "semijoia presente", "fone de ouvido bluetooth",
      ]},
-    {"nome": "Dia dos Pais", "regra": ("enesimo_dia_semana", 8, 2, 6), "dias_antecedencia": 10,
+    {"nome": "Dia dos Pais", "regra": ("enesimo_dia_semana", 8, 2, 6), "dias_antecedencia": 5,
      "keywords": [
          "dia dos pais", "kit 4 camiseta oversized", "kit 2 shorts bermuda",
          "kit 3 bermudas moletom", "kit 3 calças jogger",
