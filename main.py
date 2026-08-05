@@ -64,6 +64,9 @@ def gerar_horarios_alvo() -> list:
     return horarios
 
 
+# ---------------------------------------------------------------------------
+# CÁLCULO DE DATAS COMEMORATIVAS
+# ---------------------------------------------------------------------------
 def _enesimo_dia_semana(ano: int, mes: int, dia_semana: int, n: int) -> date:
     d = date(ano, mes, 1)
     delta = (dia_semana - d.weekday()) % 7
@@ -116,28 +119,47 @@ def _data_do_evento(campanha: dict, ano: int) -> date:
     raise ValueError(f"Tipo de regra desconhecido: {tipo}")
 
 
+# ---------------------------------------------------------------------------
+# Datas comemorativas — modelo de "RAJADA":
+#   - "dias_antecedencia": quantos dias ANTES do evento a rajada começa
+#   - "duracao_dias": por quantos dias a rajada fica ativa (só isso, não
+#     até a data em si) — depois volta pra rotação normal automaticamente
+#
+# Exemplo: Dia das Crianças em 12/10, dias_antecedencia=10, duracao_dias=3
+#   -> ativa de 02/10 até 04/10, e depois volta ao normal.
+# ---------------------------------------------------------------------------
 CAMPANHAS_POR_DATA = [
-    {"nome": "Dia do Consumidor", "regra": ("fixa", 3, 15), "dias_antecedencia": 10,
-     "keywords": ["promocao dia do consumidor"]},
-    {"nome": "Páscoa", "regra": ("pascoa",), "dias_antecedencia": 10,
-     "keywords": ["ovo de pascoa gourmet", "chocolate premium pascoa", "cesta de pascoa"]},
-    {"nome": "Dia das Mães", "regra": ("enesimo_dia_semana", 5, 2, 6), "dias_antecedencia": 10,
+    {"nome": "Dia do Consumidor", "regra": ("fixa", 3, 15), "dias_antecedencia": 10, "duracao_dias": 3,
      "keywords": [
-         "blusa feminina", "conjunto pijama feminino", "bolsa feminina",
-         "perfume feminino", "kit skincare feminino", "tenis feminino casual",
-         "relogio feminino", "semijoia colar feminino",
+         "eletrodomesticos com desconto", "fone de ouvido bluetooth",
+         "smartwatch relogio inteligente", "air fryer eletrica",
+         "perfume importado", "power bank portatil",
      ]},
-    {"nome": "Dia dos Namorados", "regra": ("fixa", 6, 12), "dias_antecedencia": 10,
+    {"nome": "Páscoa", "regra": ("pascoa",), "dias_antecedencia": 10, "duracao_dias": 3,
      "keywords": [
-         "perfume unissex", "conjunto pijama casal", "kit spa casal",
-         "semijoia presente", "fone de ouvido bluetooth",
+         "ovo de pascoa de chocolate", "chocolate premium importado",
+         "cesta de chocolates sortidos", "kit chocolate gourmet",
      ]},
-    {"nome": "Dia dos Pais", "regra": ("enesimo_dia_semana", 8, 2, 6), "dias_antecedencia": 5,
+    {"nome": "Dia das Mães", "regra": ("enesimo_dia_semana", 5, 2, 6), "dias_antecedencia": 10, "duracao_dias": 3,
+     "keywords": [
+         "blusa feminina", "vestido feminino casual", "sapato feminino",
+         "bolsa feminina", "relogio feminino", "perfume feminino",
+         "kit skincare facial", "conjunto pijama feminino",
+         "tenis feminino casual", "colar feminino folheado",
+     ]},
+    {"nome": "Dia dos Namorados", "regra": ("fixa", 6, 12), "dias_antecedencia": 10, "duracao_dias": 3,
+     "keywords": [
+         "perfume masculino", "perfume feminino", "relogio casal",
+         "caneca personalizada casal", "pelucia urso presente",
+         "kit presente casal",
+     ]},
+    {"nome": "Dia dos Pais", "regra": ("enesimo_dia_semana", 8, 2, 6), "dias_antecedencia": 10, "duracao_dias": 3,
      "keywords": [
          "dia dos pais", "kit 4 camiseta oversized", "kit 2 shorts bermuda",
          "kit 3 bermudas moletom", "kit 3 calças jogger",
          "camisa masculina gola social", "kit 2 bermudas jeans",
-         "kit cueca samba canção", "meias esportivas masculinas", "jaqueta de couro masculina",
+         "kit cueca samba canção", "meias esportivas masculinas",
+         "blazer calça slim masculino", "jaqueta de couro masculina",
          "conjunto masculino", "kit sapatênis masculino",
          "kit presente masculino boné carteira e relógio",
          "tenis masculino", "kit 3 pares sapatenis",
@@ -146,19 +168,22 @@ CAMPANHAS_POR_DATA = [
          "poedagar luxo relógio", "perfume masculino",
          "body splash masculino", "original armaf club perfume",
      ]},
-    {"nome": "Dia das Crianças", "regra": ("fixa", 10, 12), "dias_antecedencia": 10,
+    {"nome": "Dia das Crianças", "regra": ("fixa", 10, 12), "dias_antecedencia": 10, "duracao_dias": 3,
      "keywords": [
          "brinquedo educativo infantil", "boneca infantil",
          "carrinho de brinquedo infantil", "jogo de tabuleiro infantil",
          "quebra cabeca infantil", "bicicleta infantil",
      ]},
-    {"nome": "Black Friday", "regra": ("ultimo_dia_semana", 11, 4), "dias_antecedencia": 20,
-     "keywords": ["black friday"]},
-    {"nome": "Natal", "regra": ("fixa", 12, 25), "dias_antecedencia": 15,
+    {"nome": "Black Friday", "regra": ("ultimo_dia_semana", 11, 4), "dias_antecedencia": 20, "duracao_dias": 5,
      "keywords": [
-         "enfeite de natal decoracao", "perfume presente natal",
-         "relogio presente", "fone de ouvido bluetooth",
-         "brinquedo infantil natal", "kit spa presente",
+         "eletronicos com desconto", "eletrodomesticos com desconto",
+         "smartphone com desconto", "tv com desconto", "notebook com desconto",
+     ]},
+    {"nome": "Natal", "regra": ("fixa", 12, 25), "dias_antecedencia": 15, "duracao_dias": 5,
+     "keywords": [
+         "perfume importado", "relogio masculino", "relogio feminino",
+         "fone de ouvido bluetooth", "kit skincare facial",
+         "enfeite de natal decorativo", "luzes de natal decorativas",
      ]},
 ]
 
@@ -172,15 +197,20 @@ def escolher_keyword_do_dia(estado: dict) -> str:
     for campanha in CAMPANHAS_POR_DATA:
         for ano in (hoje.year, hoje.year + 1):
             evento = _data_do_evento(campanha, ano)
-            inicio = evento - timedelta(days=campanha["dias_antecedencia"])
-            if inicio <= hoje <= evento:
+            inicio_rajada = evento - timedelta(days=campanha["dias_antecedencia"])
+            fim_rajada = inicio_rajada + timedelta(days=campanha["duracao_dias"] - 1)
+
+            if inicio_rajada <= hoje <= fim_rajada:
                 recentes = estado.get("categorias_recentes", [])
                 candidatas = [k for k in campanha["keywords"] if k not in recentes]
                 if not candidatas:
                     candidatas = campanha["keywords"]
 
                 keyword_sorteada = random.choice(candidatas)
-                print(f"Campanha ativa hoje: {campanha['nome']} (evento em {evento}, keyword sorteada: '{keyword_sorteada}')")
+                print(
+                    f"Rajada ativa: {campanha['nome']} (evento em {evento}, "
+                    f"rajada de {inicio_rajada} a {fim_rajada}, keyword: '{keyword_sorteada}')"
+                )
 
                 estado.setdefault("categorias_recentes", [])
                 estado["categorias_recentes"].append(keyword_sorteada)
@@ -207,40 +237,80 @@ def escolher_keyword_do_dia(estado: dict) -> str:
 
 
 TAGS_POPULARES = [
-    "organizador de armario multiuso", "caixa organizadora empilhavel",
-    "prateleira organizadora de parede", "varal de roupas retratil",
-    "dispenser de sabonete para pia", "esfregao de limpeza multiuso",
-    "produtos de limpeza para casa", "luminaria de decoracao para quarto",
-    "decoracao minimalista para casa", "organizador de gaveta multiuso",
-    "cabide organizador de roupas", "tapete decorativo para sala",
-    "cortina de blackout para quarto", "porta trecos organizador de mesa",
-    "air fryer eletrica", "panela eletrica multifuncional",
-    "processador de alimentos eletrico", "potes hermeticos para cozinha",
-    "descascador de legumes eletrico", "escova eletrica para limpar grelha",
-    "liquidificador portatil eletrico", "kit de facas para cozinha",
-    "organizador de temperos para cozinha", "forma de silicone para cozinha",
-    "robo aspirador de po", "purificador de agua eletrico",
-    "ventilador de torre eletrico", "passadeira de roupas a vapor",
-    "cooktop portatil eletrico", "umidificador de ar eletrico",
-    "aspirador de po portatil", "secador de cabelo profissional",
-    "alisadora de cabelo eletrica", "massageador eletrico portatil",
-    "colchao massageador eletrico", "barbeador eletrico recarregavel",
-    "escova de dente eletrica", "aparador de pelos eletrico",
-    "jogo de lencol 400 fios", "manta cobertor para casal",
-    "travesseiro de algodao", "toalha de banho felpuda",
-    "kit de tapetes para banheiro", "fone de ouvido bluetooth",
-    "power bank portatil", "mini projetor portatil",
-    "camera digital compacta", "console de video game retro portatil",
-    "tablet android", "caixa de som bluetooth portatil",
-    "smartwatch relogio inteligente", "mouse e teclado sem fio",
-    "carregador rapido para celular", "estacao de musculacao dobravel",
-    "halteres ajustaveis", "esteira eletrica dobravel",
-    "faixa elastica para exercicio", "corda de pular para treino",
-    "kit de camisetas basicas", "moletom unissex", "jaqueta corta vento",
-    "mochila para notebook", "oculos de sol unissex",
-    "canivete multifuncional", "ferramenta dobravel multiuso",
-    "caneta 3d para desenho", "revolver de pressao replica brinquedo",
-    "lanterna tatica recarregavel", "kit de ferramentas para casa",
+    "organizador de armario multiuso",
+    "caixa organizadora empilhavel",
+    "prateleira organizadora de parede",
+    "varal de roupas retratil",
+    "dispenser de sabonete para pia",
+    "esfregao de limpeza multiuso",
+    "produtos de limpeza para casa",
+    "luminaria de decoracao para quarto",
+    "decoracao minimalista para casa",
+    "organizador de gaveta multiuso",
+    "cabide organizador de roupas",
+    "tapete decorativo para sala",
+    "cortina de blackout para quarto",
+    "porta trecos organizador de mesa",
+    "vaso decorativo para plantas",
+    "kit de jardinagem ferramentas",
+    "mangueira de jardim retratil",
+    "luminaria solar para jardim",
+    "regador de plantas decorativo",
+    "air fryer eletrica",
+    "panela eletrica multifuncional",
+    "processador de alimentos eletrico",
+    "potes hermeticos para cozinha",
+    "descascador de legumes eletrico",
+    "escova eletrica para limpar grelha",
+    "liquidificador portatil eletrico",
+    "kit de facas para cozinha",
+    "organizador de temperos para cozinha",
+    "forma de silicone para cozinha",
+    "robo aspirador de po",
+    "purificador de agua eletrico",
+    "ventilador de torre eletrico",
+    "passadeira de roupas a vapor",
+    "cooktop portatil eletrico",
+    "umidificador de ar eletrico",
+    "aspirador de po portatil",
+    "secador de cabelo profissional",
+    "alisadora de cabelo eletrica",
+    "massageador eletrico portatil",
+    "colchao massageador eletrico",
+    "barbeador eletrico recarregavel",
+    "escova de dente eletrica",
+    "aparador de pelos eletrico",
+    "jogo de lencol 400 fios",
+    "manta cobertor para casal",
+    "travesseiro de algodao",
+    "toalha de banho felpuda",
+    "kit de tapetes para banheiro",
+    "fone de ouvido bluetooth",
+    "power bank portatil",
+    "mini projetor portatil",
+    "camera digital compacta",
+    "console de video game retro portatil",
+    "tablet android",
+    "caixa de som bluetooth portatil",
+    "smartwatch relogio inteligente",
+    "mouse e teclado sem fio",
+    "carregador rapido para celular",
+    "estacao de musculacao dobravel",
+    "halteres ajustaveis",
+    "esteira eletrica dobravel",
+    "faixa elastica para exercicio",
+    "corda de pular para treino",
+    "kit de camisetas basicas",
+    "moletom unissex",
+    "jaqueta corta vento",
+    "mochila para notebook",
+    "oculos de sol unissex",
+    "canivete multifuncional",
+    "ferramenta dobravel multiuso",
+    "caneta 3d para desenho",
+    "revolver de pressao replica brinquedo",
+    "lanterna tatica recarregavel",
+    "kit de ferramentas para casa",
     "mochila impermeavel para viagem",
 ]
 
