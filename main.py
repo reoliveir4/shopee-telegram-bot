@@ -498,9 +498,9 @@ Loja: {produto.get('shopName')}
             json={"contents": [{"parts": [{"text": prompt}]}]},
             timeout=60,
         )
-        if resp.status_code != 429:
+        if resp.status_code not in (429, 503):
             break
-        print(f"Limite de requisições do Gemini atingido (tentativa {tentativa}/{tentativas}). Aguardando {espera}s...")
+        print(f"Erro temporário do Gemini (status {resp.status_code}, tentativa {tentativa}/{tentativas}). Aguardando {espera}s...")
         time.sleep(espera)
         espera *= 2
 
@@ -508,7 +508,9 @@ Loja: {produto.get('shopName')}
         print(f"Detalhe do erro do Gemini (status {resp.status_code}): {resp.text[:500]}")
     resp.raise_for_status()
     texto_bruto = resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
-   
+
+    texto_limpo = re.sub(r"^```(json)?|```$", "", texto_bruto.strip(), flags=re.MULTILINE).strip()
+
     try:
         conteudo = json.loads(texto_limpo)
         titulo = conteudo.get("titulo", "").strip()
@@ -523,11 +525,6 @@ Loja: {produto.get('shopName')}
         "gancho": str(produto.get("productName", "")).upper()[:120],
         "descricao": f"🛒 {produto.get('productName')}",
     }
-
-
-def formatar_preco(valor: float) -> str:
-    return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-
 
 def montar_linha_preco(produto: dict) -> str:
     preco = float(produto.get("price", 0))
