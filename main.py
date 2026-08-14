@@ -485,7 +485,7 @@ Loja: {produto.get('shopName')}
 
     url = (
         "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"gemini-flash-latest:generateContent?key={GEMINI_API_KEY}"
+        f"gemini-flash-lite-latest:generateContent?key={GEMINI_API_KEY}"
     )
 
     tentativas = 2
