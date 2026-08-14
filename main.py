@@ -504,11 +504,11 @@ Loja: {produto.get('shopName')}
         time.sleep(espera)
         espera *= 2
 
+    if resp.status_code >= 400:
+        print(f"Detalhe do erro do Gemini (status {resp.status_code}): {resp.text[:500]}")
     resp.raise_for_status()
     texto_bruto = resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
-
-    texto_limpo = re.sub(r"^```(json)?|```$", "", texto_bruto.strip(), flags=re.MULTILINE).strip()
-
+   
     try:
         conteudo = json.loads(texto_limpo)
         titulo = conteudo.get("titulo", "").strip()
