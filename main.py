@@ -526,6 +526,10 @@ Loja: {produto.get('shopName')}
         "descricao": f"🛒 {produto.get('productName')}",
     }
 
+def formatar_preco(valor: float) -> str:
+    return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
 def montar_linha_preco(produto: dict) -> str:
     preco = float(produto.get("price", 0))
     desconto = produto.get("priceDiscountRate")
