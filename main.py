@@ -488,8 +488,8 @@ Loja: {produto.get('shopName')}
         f"gemini-flash-latest:generateContent?key={GEMINI_API_KEY}"
     )
 
-    tentativas = 3
-    espera = 15
+    tentativas = 2
+    espera = 10
     resp = None
     for tentativa in range(1, tentativas + 1):
         resp = requests.post(
@@ -563,7 +563,7 @@ def enviar_para_telegram(produto: dict, conteudo: dict):
     return resp.json()
 
 
-MAX_POSTS_POR_EXECUCAO = 15
+MAX_POSTS_POR_EXECUCAO = 8
 
 
 def _palavras_significativas(nome: str) -> set:
