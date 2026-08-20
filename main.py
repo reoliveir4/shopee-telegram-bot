@@ -13,6 +13,11 @@ Fluxo:
 2. Se nenhum horário estiver pendente, o script encerra rapidamente sem
    gastar chamadas de API.
 
+IMPORTANTE: o servidor do GitHub Actions roda em UTC. Todo o cálculo de
+"que dia é hoje" e "que horas são agora" usa o horário de Brasília
+(UTC-3), via a função agora_brt(), para nunca ficar dessincronizado do
+fuso do público do canal.
+
 Todas as chaves sensíveis são lidas de variáveis de ambiente (GitHub Secrets).
 """
 
@@ -39,6 +44,14 @@ GEMINI_API_KEY = os.environ["GEMINI_API_KEY"].strip()
 SHOPEE_GRAPHQL_URL = "https://open-api.affiliate.shopee.com.br/graphql"
 
 KEYWORD_FIXA = os.environ.get("SHOPEE_KEYWORD", "").strip()
+
+
+def agora_brt() -> datetime:
+    """Retorna o datetime atual no horário de Brasília (UTC-3), sempre.
+    Use esta função (nunca datetime.now()) para qualquer cálculo de data
+    ou hora neste script, para não depender do fuso do servidor."""
+    return datetime.utcnow() - timedelta(hours=3)
+
 
 # ---------------------------------------------------------------------------
 # CONFIGURAÇÃO DE HORÁRIOS
@@ -119,15 +132,6 @@ def _data_do_evento(campanha: dict, ano: int) -> date:
     raise ValueError(f"Tipo de regra desconhecido: {tipo}")
 
 
-# ---------------------------------------------------------------------------
-# Datas comemorativas — modelo de "RAJADA":
-#   - "dias_antecedencia": quantos dias ANTES do evento a rajada começa
-#   - "duracao_dias": por quantos dias a rajada fica ativa (só isso, não
-#     até a data em si) — depois volta pra rotação normal automaticamente
-#
-# Exemplo: Dia das Crianças em 12/10, dias_antecedencia=10, duracao_dias=3
-#   -> ativa de 02/10 até 04/10, e depois volta ao normal.
-# ---------------------------------------------------------------------------
 CAMPANHAS_POR_DATA = [
     {"nome": "Dia do Consumidor", "regra": ("fixa", 3, 15), "dias_antecedencia": 10, "duracao_dias": 3,
      "keywords": [
@@ -192,7 +196,7 @@ CATEGORIAS_EM_COOLDOWN = 12
 
 
 def escolher_keyword_do_dia(estado: dict) -> str:
-    hoje = datetime.now().date()
+    hoje = agora_brt().date()
 
     for campanha in CAMPANHAS_POR_DATA:
         for ano in (hoje.year, hoje.year + 1):
@@ -360,7 +364,7 @@ DIAS_SEM_REPETIR_PRODUTO = 7
 
 
 def carregar_estado() -> dict:
-    hoje = datetime.now().strftime("%Y-%m-%d")
+    hoje = agora_brt().strftime("%Y-%m-%d")
     padrao = {"data": hoje, "horarios_postados": [], "produtos_enviados": {}}
 
     if not os.path.exists(ARQUIVO_ESTADO):
@@ -383,7 +387,7 @@ def carregar_estado() -> dict:
 
 
 def limpar_produtos_antigos(estado: dict):
-    hoje = datetime.now().date()
+    hoje = agora_brt().date()
     limite = hoje - timedelta(days=DIAS_SEM_REPETIR_PRODUTO)
 
     produtos_validos = {}
@@ -526,6 +530,7 @@ Loja: {produto.get('shopName')}
         "descricao": f"🛒 {produto.get('productName')}",
     }
 
+
 def formatar_preco(valor: float) -> str:
     return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
@@ -640,15 +645,14 @@ def postar_um_produto(keyword_hint_dia: str, estado: dict) -> bool:
     print("Enviado com sucesso!", resultado.get("ok"))
 
     estado["produtos_enviados"][str(produto["itemId"])] = {
-        "data": datetime.now().strftime("%Y-%m-%d"),
+        "data": agora_brt().strftime("%Y-%m-%d"),
         "nome": produto["productName"],
     }
     return True
 
 
 def main():
-    agora_brt = datetime.utcnow() - timedelta(hours=3)
-    agora_hm = agora_brt.strftime("%H:%M")
+    agora_hm = agora_brt().strftime("%H:%M")
 
     estado = carregar_estado()
     limpar_produtos_antigos(estado)
