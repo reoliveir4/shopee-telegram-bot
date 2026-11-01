@@ -78,6 +78,141 @@ def gerar_horarios_alvo() -> list:
 
 
 # ---------------------------------------------------------------------------
+# POSTS NATALINOS EXTRAS
+# Além dos POSTS_POR_DIA normais, publica POSTS_NATAL_POR_DIA itens de Natal
+# por dia, de NATAL_INICIO até NATAL_FIM (datas inclusive, no formato
+# (mês, dia)). Para desligar sem apagar nada: POSTS_NATAL_POR_DIA = 0.
+# ---------------------------------------------------------------------------
+POSTS_NATAL_POR_DIA = 10
+NATAL_HORA_INICIO = "07:30"
+NATAL_HORA_FIM = "22:30"
+NATAL_INICIO = (11, 1)
+NATAL_FIM = (12, 24)
+MAX_NATAL_POR_EXECUCAO = 2  # evita despejar vários posts natalinos de uma vez
+TENTATIVAS_NATAL_POR_SLOT = 3  # se uma categoria não render, tenta outra
+
+KEYWORDS_NATAL = [
+    # Árvores natalinas
+    "arvore de natal",
+    "arvore de natal 1 80m",
+    "arvore de natal grande 2 10m",
+    "arvore de natal com led",
+    "mini arvore de natal de mesa",
+    # Enfeites
+    "enfeite de natal decorativo",
+    "bola de natal enfeite para arvore",
+    "guirlanda de natal para porta",
+    "kit decoracao natalina",
+    "meia de natal lareira",
+    "boneco de neve decorativo natal",
+    # Jogos de mesa (mesa posta)
+    "jogo americano natal",
+    "kit mesa posta natal",
+    "toalha de mesa natalina",
+    "caminho de mesa natal",
+    "guardanapo natalino",
+    # Jogos de cama
+    "jogo de cama natalino",
+    "jogo de lencol natalino",
+    "colcha natalina",
+    "capa de almofada natalina",
+    # Luzes
+    "luzes de natal pisca pisca",
+    "cortina de led natal",
+    "cascata de luzes de natal",
+    "projetor led natalino",
+    # Enfeites de jardim
+    "enfeite de natal para jardim",
+    "iluminacao de natal externa",
+    "rena luminosa natal jardim",
+    "boneco de natal gigante jardim",
+    # Papai Noel de enfeite
+    "papai noel decoracao",
+    "boneco papai noel enfeite",
+    "papai noel luminoso decoracao",
+    "papai noel escalador enfeite",
+    # Ceia
+    "kit ceia de natal",
+    "forma de panetone",
+    "travessa para ceia de natal",
+    "taca de champanhe natal",
+    "avental natalino",
+    # Jesus / presépio
+    "presepio de natal",
+    "presepio completo natividade",
+    "imagem menino jesus",
+    "sagrada familia presepio",
+    "estrela de belem enfeite natal",
+]
+
+# Trava de relevância: nos posts natalinos, só passa produto cujo nome tenha
+# alguma destas marcas de Natal. Evita vir coisa fora do tema.
+_PADRAO_NATALINO = re.compile(
+    r"natal|natalin|noel|guirlanda|pres[eé]pio|pinheiro|boneco de neve|"
+    r"\brenas?\b|\btreno\b|\btrenó\b|\bsino\b|\bsinos\b|"
+    r"ceia|panetone|jesus|natividade|bel[eé]m|sagrada fam[ií]lia",
+    re.IGNORECASE,
+)
+
+
+def eh_produto_natalino(produto: dict) -> bool:
+    nome = str(produto.get("productName", ""))
+    return bool(_PADRAO_NATALINO.search(nome))
+
+
+def natal_ativo() -> bool:
+    if POSTS_NATAL_POR_DIA <= 0:
+        return False
+    hoje = agora_brt().date()
+    inicio = date(hoje.year, NATAL_INICIO[0], NATAL_INICIO[1])
+    fim = date(hoje.year, NATAL_FIM[0], NATAL_FIM[1])
+    return inicio <= hoje <= fim
+
+
+def gerar_horarios_natal() -> list:
+    """Horários dos posts natalinos, igualmente espaçados. Cada um recebe um
+    prefixo 'N' (ex: 'N07:30') para não se misturar com os horários normais
+    no controle do estado.json."""
+    h_ini, m_ini = map(int, NATAL_HORA_INICIO.split(":"))
+    h_fim, m_fim = map(int, NATAL_HORA_FIM.split(":"))
+    minutos_inicio = h_ini * 60 + m_ini
+    minutos_fim = h_fim * 60 + m_fim
+    intervalo = (minutos_fim - minutos_inicio) / POSTS_NATAL_POR_DIA
+
+    horarios = []
+    for i in range(POSTS_NATAL_POR_DIA):
+        minutos = int(minutos_inicio + i * intervalo)
+        horarios.append(f"N{minutos // 60:02d}:{minutos % 60:02d}")
+    return horarios
+
+
+def escolher_keyword_natal(estado: dict) -> str:
+    recentes = estado.get("categorias_recentes", [])
+    candidatas = [k for k in KEYWORDS_NATAL if k not in recentes]
+    if not candidatas:
+        candidatas = KEYWORDS_NATAL
+
+    keyword_sorteada = random.choice(candidatas)
+    print(f"Slot natalino. Categoria sorteada: '{keyword_sorteada}'")
+
+    estado.setdefault("categorias_recentes", [])
+    estado["categorias_recentes"].append(keyword_sorteada)
+    estado["categorias_recentes"] = estado["categorias_recentes"][-CATEGORIAS_EM_COOLDOWN:]
+
+    return keyword_sorteada
+
+
+def postar_natalino(estado: dict) -> bool:
+    """Posta 1 produto natalino. Se a categoria sorteada não render nenhum
+    produto de Natal, tenta outra (até TENTATIVAS_NATAL_POR_SLOT vezes)."""
+    for _ in range(TENTATIVAS_NATAL_POR_SLOT):
+        keyword = escolher_keyword_natal(estado)
+        if postar_um_produto(keyword, estado):
+            return True
+    return False
+
+
+# ---------------------------------------------------------------------------
 # CÁLCULO DE DATAS COMEMORATIVAS
 # ---------------------------------------------------------------------------
 def _enesimo_dia_semana(ano: int, mes: int, dia_semana: int, n: int) -> date:
@@ -612,8 +747,14 @@ def postar_um_produto(keyword_hint_dia: str, estado: dict) -> bool:
     if len(produtos) < antes:
         print(f"{antes - len(produtos)} produto(s) removido(s) pela exclusão específica da categoria '{keyword}'.")
 
+    if keyword in KEYWORDS_NATAL:
+        antes = len(produtos)
+        produtos = [p for p in produtos if eh_produto_natalino(p)]
+        if len(produtos) < antes:
+            print(f"{antes - len(produtos)} produto(s) removido(s) por não parecerem natalinos.")
+
     if not produtos:
-        print("Todos os produtos encontrados estavam na blacklist.")
+        print("Todos os produtos encontrados estavam na blacklist ou fora do tema.")
         return False
 
     enviados = estado["produtos_enviados"]
@@ -656,12 +797,29 @@ def main():
 
     estado = carregar_estado()
     limpar_produtos_antigos(estado)
-    horarios_alvo = gerar_horarios_alvo()
+
+    # Cada item: (id do horário, hora "HH:MM", é_natalino)
+    horarios_alvo = [(h, h, False) for h in gerar_horarios_alvo()]
+    if natal_ativo():
+        horarios_alvo += [(n, n[1:], True) for n in gerar_horarios_natal()]
+    horarios_alvo.sort(key=lambda item: item[1])
 
     horarios_pendentes = [
-        h for h in horarios_alvo
-        if h <= agora_hm and h not in estado["horarios_postados"]
+        item for item in horarios_alvo
+        if item[1] <= agora_hm and item[0] not in estado["horarios_postados"]
     ]
+
+    # Limita quantos posts natalinos atrasados saem de uma vez; os demais
+    # ficam pendentes e saem nas próximas execuções (a cada 10 minutos).
+    natalinos_aceitos = 0
+    pendentes_limitados = []
+    for item in horarios_pendentes:
+        if item[2]:
+            if natalinos_aceitos >= MAX_NATAL_POR_EXECUCAO:
+                continue
+            natalinos_aceitos += 1
+        pendentes_limitados.append(item)
+    horarios_pendentes = pendentes_limitados
 
     if not horarios_pendentes:
         print(f"Nenhum horário pendente agora ({agora_hm} BRT). Encerrando sem postar.")
@@ -673,22 +831,26 @@ def main():
         f"Processando {len(a_processar)} nesta execução..."
     )
 
-    for horario_disparado in a_processar:
+    ultimo_id = a_processar[-1][0]
+    for horario_disparado, _hora, eh_natal in a_processar:
         print(f"\n--- Horário-alvo '{horario_disparado}' ---")
         try:
-            keyword = escolher_keyword_do_dia(estado)
-            postou = postar_um_produto(keyword, estado)
+            if eh_natal:
+                postou = postar_natalino(estado)
+            else:
+                keyword = escolher_keyword_do_dia(estado)
+                postou = postar_um_produto(keyword, estado)
         except Exception as erro:
             print(f"ERRO ao processar o horário '{horario_disparado}': {erro}")
             print("Pulando para o próximo horário pendente, se houver...")
-            if horario_disparado != a_processar[-1]:
+            if horario_disparado != ultimo_id:
                 time.sleep(8)
             continue
 
         estado["horarios_postados"].append(horario_disparado)
         salvar_estado(estado)
 
-        if postou and horario_disparado != a_processar[-1]:
+        if postou and horario_disparado != ultimo_id:
             time.sleep(8)
 
 
