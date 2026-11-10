@@ -315,14 +315,17 @@ CAMPANHAS_POR_DATA = [
      ]},
     {"nome": "Black Friday", "regra": ("ultimo_dia_semana", 11, 4), "dias_antecedencia": 20, "duracao_dias": 5,
      "keywords": [
-         "eletronicos com desconto", "eletrodomesticos com desconto",
-         "smartphone com desconto", "tv com desconto", "notebook com desconto",
+         "air fryer eletrica", "liquidificador", "cafeteira eletrica",
+         "robo aspirador de po", "ventilador de torre eletrico",
+         "panela eletrica multifuncional", "batedeira planetaria",
+         "jogo de panelas antiaderente", "kit de facas para cozinha",
+         "jogo de cama casal", "cortina de blackout para quarto",
      ]},
     {"nome": "Natal", "regra": ("fixa", 12, 25), "dias_antecedencia": 15, "duracao_dias": 5,
      "keywords": [
-         "perfume importado", "relogio masculino", "relogio feminino",
-         "fone de ouvido bluetooth", "kit skincare facial",
-         "enfeite de natal decorativo", "luzes de natal decorativas",
+         "arvore de natal", "enfeite de natal decorativo",
+         "luzes de natal pisca pisca", "kit ceia de natal",
+         "jogo de cama natalino", "toalha de mesa natalina",
      ]},
 ]
 
@@ -376,81 +379,50 @@ def escolher_keyword_do_dia(estado: dict) -> str:
 
 
 TAGS_POPULARES = [
-    "organizador de armario multiuso",
-    "caixa organizadora empilhavel",
-    "prateleira organizadora de parede",
-    "varal de roupas retratil",
-    "dispenser de sabonete para pia",
-    "esfregao de limpeza multiuso",
-    "produtos de limpeza para casa",
-    "luminaria de decoracao para quarto",
-    "decoracao minimalista para casa",
-    "organizador de gaveta multiuso",
-    "cabide organizador de roupas",
-    "tapete decorativo para sala",
-    "cortina de blackout para quarto",
-    "porta trecos organizador de mesa",
-    "vaso decorativo para plantas",
-    "kit de jardinagem ferramentas",
-    "mangueira de jardim retratil",
-    "luminaria solar para jardim",
-    "regador de plantas decorativo",
-    "air fryer eletrica",
-    "panela eletrica multifuncional",
-    "processador de alimentos eletrico",
-    "potes hermeticos para cozinha",
-    "descascador de legumes eletrico",
-    "escova eletrica para limpar grelha",
-    "liquidificador portatil eletrico",
-    "kit de facas para cozinha",
-    "organizador de temperos para cozinha",
-    "forma de silicone para cozinha",
-    "robo aspirador de po",
-    "purificador de agua eletrico",
-    "ventilador de torre eletrico",
-    "passadeira de roupas a vapor",
-    "cooktop portatil eletrico",
-    "umidificador de ar eletrico",
-    "aspirador de po portatil",
-    "secador de cabelo profissional",
-    "alisadora de cabelo eletrica",
-    "massageador eletrico portatil",
-    "colchao massageador eletrico",
-    "barbeador eletrico recarregavel",
-    "escova de dente eletrica",
-    "aparador de pelos eletrico",
-    "jogo de lencol 400 fios",
-    "manta cobertor para casal",
-    "travesseiro de algodao",
-    "toalha de banho felpuda",
-    "kit de tapetes para banheiro",
-    "fone de ouvido bluetooth",
-    "power bank portatil",
-    "mini projetor portatil",
-    "camera digital compacta",
-    "console de video game retro portatil",
-    "tablet android",
-    "caixa de som bluetooth portatil",
-    "smartwatch relogio inteligente",
-    "mouse e teclado sem fio",
-    "carregador rapido para celular",
-    "estacao de musculacao dobravel",
-    "halteres ajustaveis",
-    "esteira eletrica dobravel",
-    "faixa elastica para exercicio",
-    "corda de pular para treino",
-    "kit de camisetas basicas",
-    "moletom unissex",
-    "jaqueta corta vento",
-    "mochila para notebook",
-    "oculos de sol unissex",
-    "canivete multifuncional",
-    "ferramenta dobravel multiuso",
-    "caneta 3d para desenho",
-    "revolver de pressao replica brinquedo",
-    "lanterna tatica recarregavel",
-    "kit de ferramentas para casa",
-    "mochila impermeavel para viagem",
+    # Organização e limpeza da casa
+    "organizador de armario multiuso", "caixa organizadora empilhavel",
+    "prateleira organizadora de parede", "varal de roupas retratil",
+    "organizador de gaveta multiuso", "cabide organizador de roupas",
+    "porta trecos organizador de mesa", "sapateira organizadora",
+    "cesto de roupas organizador", "esfregao de limpeza multiuso",
+    "mop giratorio com balde", "vassoura e rodo kit limpeza",
+    "dispenser de sabonete para pia", "lixeira com pedal",
+    # Sala
+    "tapete decorativo para sala", "decoracao minimalista para casa",
+    "almofada decorativa para sofa", "manta para sofa",
+    "relogio de parede decorativo", "quadro decorativo para sala",
+    "espelho decorativo de parede", "cortina para sala",
+    "estante prateleira decorativa", "mesa de centro para sala",
+    # Quarto
+    "luminaria de decoracao para quarto", "cortina de blackout para quarto",
+    "jogo de lencol 400 fios", "jogo de cama casal",
+    "manta cobertor para casal", "travesseiro de algodao",
+    "edredom casal", "colcha de cama casal", "cabideiro de pe para quarto",
+    # Banheiro
+    "toalha de banho felpuda", "kit de tapetes para banheiro",
+    "kit acessorios para banheiro", "organizador de banheiro",
+    # Jardim
+    "vaso decorativo para plantas", "kit de jardinagem ferramentas",
+    "mangueira de jardim retratil", "luminaria solar para jardim",
+    "regador de plantas decorativo", "suporte para vasos de plantas",
+    "cerca decorativa para jardim", "enfeite de jardim decorativo",
+    # Cozinha e utensílios
+    "potes hermeticos para cozinha", "kit de facas para cozinha",
+    "organizador de temperos para cozinha", "forma de silicone para cozinha",
+    "jogo de panelas antiaderente", "frigideira antiaderente",
+    "jogo de talheres inox", "kit de utensilios de silicone cozinha",
+    "tabua de corte de bambu", "escorredor de louca",
+    "garrafa termica", "jogo de copos de vidro", "jogo de pratos de ceramica",
+    "descascador de legumes eletrico", "escova eletrica para limpar grelha",
+    # Eletrodomésticos
+    "air fryer eletrica", "panela eletrica multifuncional",
+    "processador de alimentos eletrico", "liquidificador",
+    "cafeteira eletrica", "sanduicheira eletrica", "batedeira planetaria",
+    "robo aspirador de po", "aspirador de po portatil",
+    "purificador de agua eletrico", "ventilador de torre eletrico",
+    "passadeira de roupas a vapor", "cooktop portatil eletrico",
+    "umidificador de ar eletrico", "chaleira eletrica",
+    "mixer triturador eletrico", "forno eletrico",
 ]
 
 LIMIT = 50
@@ -463,11 +435,23 @@ PALAVRAS_BLOQUEADAS = [
     "parachoque", "para-choque", "motorista", "carona", "dianteira",
     "traseira", "automotivo", "veicular", "regulador de vidro",
     "peca automotiva", "capa de banco",
+    # lixo que apareceu com buscas "com desconto"
+    "voucher", "recibo", "formulario", "formulário", "contabilidade",
+    "vale desconto", "taxa de", "taxas de", "placa de oferta", "placas de oferta",
+    "testador", "resistor", "chicote", "barras de led", "tv sharp",
+    "peca de reposicao", "peça de reposição", "[desconto",
 ]
+
+
+_PADRAO_LIXO = re.compile(r"[\u3400-\u9fff]|\busad[oa]s?\b|\bseminov[oa]s?\b", re.IGNORECASE)
 
 
 def produto_bloqueado(produto: dict) -> bool:
     nome = str(produto.get("productName", "")).lower()
+
+    # nomes em chinês, produto usado ou seminovo
+    if _PADRAO_LIXO.search(nome):
+        return True
 
     for palavra in PALAVRAS_BLOQUEADAS:
         if palavra == "tesoura de corte":
@@ -769,16 +753,37 @@ def postar_um_produto(keyword_hint_dia: str, estado: dict) -> bool:
         produtos_novos.append(p)
 
     if not produtos_novos:
-        print(f"Todos os produtos encontrados já foram postados (ou são parecidos com algo postado) nos últimos {DIAS_SEM_REPETIR_PRODUTO} dias. Permitindo repetição.")
-        produtos_novos = produtos
+        print(f"Todos os produtos encontrados já foram postados (ou são parecidos com algo postado) nos últimos {DIAS_SEM_REPETIR_PRODUTO} dias. Não vou repetir; tentando outra busca.")
+        return False
 
     produtos_novos.sort(key=lambda p: float(p.get("commissionRate", 0) or 0), reverse=True)
     candidatos = produtos_novos[:TOP_N_PARA_SORTEIO]
-    produto = random.choice(candidatos)
-    print(f"Produto escolhido (comissão {produto.get('commissionRate')}): {produto['productName']}")
+    random.shuffle(candidatos)
 
-    print("Gerando conteúdo com IA...")
-    conteudo = gerar_conteudo_ia(produto)
+    titulos_recentes = [info["titulo"] for info in enviados.values() if isinstance(info, dict) and info.get("titulo")]
+
+    produto = None
+    conteudo = None
+    for candidato in candidatos[:4]:
+        print(f"Produto escolhido (comissão {candidato.get('commissionRate')}): {candidato['productName']}")
+        print("Gerando conteúdo com IA...")
+        conteudo_candidato = gerar_conteudo_ia(candidato)
+        titulo = str(conteudo_candidato.get("gancho", ""))
+        if any(produtos_parecidos(titulo, t) for t in titulos_recentes):
+            print(f"Título '{titulo}' é parecido com um já postado. Pulando este produto.")
+            estado["produtos_enviados"][str(candidato["itemId"])] = {
+                "data": agora_brt().strftime("%Y-%m-%d"),
+                "nome": candidato["productName"],
+                "titulo": titulo,
+            }
+            continue
+        produto, conteudo = candidato, conteudo_candidato
+        break
+
+    if produto is None:
+        print("Todos os candidatos eram parecidos com algo já postado. Tentando outra busca.")
+        return False
+
     print(f"Título: {conteudo['gancho']}\nDescrição: {conteudo['descricao']}")
 
     print("Enviando para o Telegram...")
@@ -788,8 +793,19 @@ def postar_um_produto(keyword_hint_dia: str, estado: dict) -> bool:
     estado["produtos_enviados"][str(produto["itemId"])] = {
         "data": agora_brt().strftime("%Y-%m-%d"),
         "nome": produto["productName"],
+        "titulo": str(conteudo.get("gancho", "")),
     }
     return True
+
+
+def postar_normal(estado: dict) -> bool:
+    """Posta 1 produto normal. Se a busca sorteada não render nada novo,
+    tenta outra (até 3 vezes) em vez de repetir produto."""
+    for _ in range(3):
+        keyword = escolher_keyword_do_dia(estado)
+        if postar_um_produto(keyword, estado):
+            return True
+    return False
 
 
 def main():
@@ -838,8 +854,7 @@ def main():
             if eh_natal:
                 postou = postar_natalino(estado)
             else:
-                keyword = escolher_keyword_do_dia(estado)
-                postou = postar_um_produto(keyword, estado)
+                postou = postar_normal(estado)
         except Exception as erro:
             print(f"ERRO ao processar o horário '{horario_disparado}': {erro}")
             print("Pulando para o próximo horário pendente, se houver...")
