@@ -413,7 +413,7 @@ TAGS_POPULARES = [
     "jogo de talheres inox", "kit de utensilios de silicone cozinha",
     "tabua de corte de bambu", "escorredor de louca",
     "garrafa termica", "jogo de copos de vidro", "jogo de pratos de ceramica",
-    "descascador de legumes eletrico", "escova eletrica para limpar grelha",
+    "descascador de legumes eletrico",
     # Eletrodomésticos
     "air fryer eletrica", "panela eletrica multifuncional",
     "processador de alimentos eletrico", "liquidificador",
@@ -424,6 +424,39 @@ TAGS_POPULARES = [
     "umidificador de ar eletrico", "chaleira eletrica",
     "mixer triturador eletrico", "forno eletrico",
 ]
+
+# Móveis
+MOVEIS = [
+    "sofa retratil 3 lugares", "rack para tv", "painel para tv",
+    "estante para livros", "mesa de jantar com cadeiras", "cadeira de escritorio",
+    "escrivaninha mesa de escritorio", "guarda roupa", "comoda para quarto",
+    "poltrona decorativa", "cama box casal", "armario de cozinha",
+    "sapateira armario", "aparador para sala", "criado mudo",
+    "cadeira de jantar", "banqueta alta", "mesa de centro para sala",
+]
+TAGS_POPULARES = list(dict.fromkeys(TAGS_POPULARES + MOVEIS))
+
+# Eletrodomésticos e móveis são produtos "grandes": abaixo deste preço (R$)
+# quase sempre é peça solta, e não o produto completo.
+PRECO_MINIMO_GRANDES = 59.0
+KEYWORDS_PRECO_MINIMO = set(MOVEIS) | {
+    "air fryer eletrica", "panela eletrica multifuncional", "processador de alimentos eletrico",
+    "liquidificador", "cafeteira eletrica", "sanduicheira eletrica", "batedeira planetaria",
+    "robo aspirador de po", "aspirador de po portatil", "purificador de agua eletrico",
+    "ventilador de torre eletrico", "passadeira de roupas a vapor", "cooktop portatil eletrico",
+    "umidificador de ar eletrico", "chaleira eletrica", "mixer triturador eletrico", "forno eletrico",
+    "descascador de legumes eletrico",
+} | {k for c in CAMPANHAS_POR_DATA if c["nome"] == "Black Friday" for k in c["keywords"]}
+
+
+def _preco_ok(produto: dict) -> bool:
+    for campo in ("priceMin", "price"):
+        try:
+            return float(str(produto.get(campo)).replace(",", ".")) >= PRECO_MINIMO_GRANDES
+        except (TypeError, ValueError):
+            continue
+    return True  # sem preço legível: não filtra
+
 
 LIMIT = 50
 
@@ -443,6 +476,23 @@ PALAVRAS_BLOQUEADAS = [
 ]
 
 
+_PADRAO_PECA = re.compile(
+    r"reposi[çc][ãa]o|\brepor\b|\bpe[çc]as? originais?\b|\brefil\b|\bcompat[ií]ve(l|is)\b|"
+    r"\bpolias?\b|\bengrenagens?\b|\bbot[ãa]o\b|\bknob\b|\bresist[êe]ncias?\b|"
+    r"\btermostatos?\b|\bvedantes?\b|\bgaxetas?\b|\bretent(or|ores)\b|\bcorreias?\b|"
+    r"\bcapacitor(es)?\b|\bfus[ií]ve(l|is)\b|\bescovas? de carv[ãa]o\b|\bsensor(es)?\b|"
+    r"\bplacas? (eletr[ôo]nica|de comando|principal|controladora|de pot[êe]ncia)\b|\bm[óo]dulo\b|"
+    r"\bmotor (para|de|do)\b|\bv[áa]lvulas?\b|\bpuxador(es)?\b|\bdobradi[çc]as?\b|\bferragens?\b|"
+    r"\bfogareiro\b|"
+    r"\b(tampa|jarra|copo|base|cesto|gaveta|jarro|l[âa]mina|h[ée]lice|cabo|mangueira|bico|filtro|bocal|acess[óo]rios?|"
+    r"forma|forminha|grelha|bandeja|suporte|pe|pes|pés|rodinha|rodinhas)( \w+){0,2} (para|do|da|de) (o |a )?"
+    r"(liquidificador|batedeira|air ?fryer|fritadeira|forno|geladeira|fog[ãa]o|micro|ventilador|aspirador|"
+    r"cafeteira|processador|mixer|purificador|umidificador|sof[áa]|cadeira|mesa|cama|guarda)|"
+    r"\bl[âa]mpadas?\b.*\b(forno|geladeira|fog[ãa]o|micro|refrigerador)\b|"
+    r"\b(forno|geladeira|fog[ãa]o|micro|refrigerador)\b.*\bl[âa]mpadas?\b",
+    re.IGNORECASE,
+)
+
 _PADRAO_LIXO = re.compile(r"[\u3400-\u9fff]|\busad[oa]s?\b|\bseminov[oa]s?\b", re.IGNORECASE)
 
 
@@ -451,6 +501,10 @@ def produto_bloqueado(produto: dict) -> bool:
 
     # nomes em chinês, produto usado ou seminovo
     if _PADRAO_LIXO.search(nome):
+        return True
+
+    # peças de reposição e acessórios de eletrodoméstico/móvel
+    if _PADRAO_PECA.search(nome):
         return True
 
     for palavra in PALAVRAS_BLOQUEADAS:
@@ -730,6 +784,12 @@ def postar_um_produto(keyword_hint_dia: str, estado: dict) -> bool:
     produtos = [p for p in produtos if not produto_bloqueado_pela_categoria(p, keyword)]
     if len(produtos) < antes:
         print(f"{antes - len(produtos)} produto(s) removido(s) pela exclusão específica da categoria '{keyword}'.")
+
+    if keyword in KEYWORDS_PRECO_MINIMO:
+        antes = len(produtos)
+        produtos = [p for p in produtos if _preco_ok(p)]
+        if len(produtos) < antes:
+            print(f"{antes - len(produtos)} produto(s) removido(s) por preço baixo demais (provável peça solta).")
 
     if keyword in KEYWORDS_NATAL:
         antes = len(produtos)
